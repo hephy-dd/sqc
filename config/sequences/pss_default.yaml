@@ -1,0 +1,100 @@
+name: PSs default
+measurements:
+  - type: iv
+    name: IV
+    enabled: true
+    parameters:
+      hv_channels: [A1, B1, C2]
+      voltage_begin: 0 V
+      voltage_end: -1000 V
+      voltage_step: -10 V
+      waiting_time: 1 s
+      compliance: 25 uA
+  - type: cv
+    name: CV
+    enabled: true
+    parameters:
+      hv_channels: [A2, B2, C2]
+      voltage_begin: 0 V
+      voltage_end: -600 V
+      voltage_step: -5 V
+      waiting_time: 1 s
+      compliance: 25 uA
+      open_correction: false
+  - type: stripscan
+    name: Stripscan
+    strips: "1-1920"
+    enabled: true
+    parameters:
+      hv_channels: [A1, B1, C2]
+      bias_voltage: -600 V
+      bias_compliance: 25 uA
+    strip_measurements:
+      - type: rpoly
+        name: Rpoly
+        interval: 4
+        enabled: true
+        parameters:
+          hv_channels: [A1, B1, C1]
+          lv_channels: [1C05]
+          lv_channels_istrip: [1A05]
+          rpoly_r_minimum: 1 Mohm
+          rpoly_r_maximum: 2 Mohm
+      - type: istrip
+        name: Istrip
+        interval: 4
+        enabled: true
+        parameters:
+          hv_channels: [A1, B1, C2]
+          lv_channels: [1A05]
+          istrip_i_minimum: 5 pA
+          istrip_i_maximum: 300 pA
+      - type: idiel
+        name: Idiel
+        interval: 4
+        enabled: true
+        parameters:
+          hv_channels: [A1, B1, C2]
+          lv_channels: [1D05, 1C07]
+      - type: cac
+        name: Cac
+        interval: 4
+        enabled: true
+        parameters:
+          hv_channels: [A1, B1, C2]
+          lv_channels: [1G05, 1H07]
+          cac_cp_minimum: 60 pF
+      - type: cint
+        name: Cint
+        interval: 14
+        enabled: true
+        parameters:
+          hv_channels: [A1, B1, C2]
+          lv_channels: [1H05, 1G02]
+          cint_cp_minimum: 0.5 pF
+      - type: rint
+        name: Rint
+        interval: 14
+        enabled: true
+        parameters:
+          hv_channels: [A1, B1, C1, C2]
+          lv_channels: [1A05, 1C02]
+          rint_r_minimum: 5 Gohm
+          rint_r_maximum: 2000 Gohm
+      - type: idark
+        name: Idark
+        interval: 4
+        enabled: true
+        parameters:
+          hv_channels: [A1, B1, C2]
+  - type: iv
+    name: IV Final
+    enabled: false
+    namespace: final
+    parameters:
+      hv_channels: [A1, B1, C2]
+      voltage_begin: 0 V
+      voltage_end: -1000 V
+      voltage_step: -10 V
+      waiting_time: 1 s
+      compliance: 25 uA

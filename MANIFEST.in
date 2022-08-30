@@ -1,0 +1,14 @@
+include README.md
+include LICENSE
+include tox.ini
+
+include emulators.yaml
+
+recursive-include sqc/assets *.ico
+recursive-include sqc/assets *.png
+recursive-include sqc/assets *.svg
+
+recursive-include config/pads *.txt
+recursive-include config/sequences *.yaml
+
+recursive-include tests *.py

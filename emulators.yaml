@@ -1,0 +1,45 @@
+version: '1.0'
+emulators:
+  matrix:
+    module: keithley.k708b
+    port: 11001
+  smu:
+    module: keithley.k2410
+    port: 11002
+    options:
+      curr.min: 1e-12
+      curr.max: 2e-12
+  bias_smu:
+    module: keithley.k2657a
+    port: 11003
+    options:
+      curr.min: 1e-9
+      curr.max: 2e-9
+  elm:
+    module: keithley.k6517b
+    port: 11004
+    options:
+      curr.min: 1e-12
+      curr.max: 2e-12
+  lcr:
+    module: keysight.e4980a
+    port: 11005
+    options:
+      cp.min: 24.0e-12
+      cp.max: 24.5e-12
+  environ:
+    module: hephy.environbox
+    port: 11006
+  hv_switch:
+    module: hephy.brandbox
+    port: 11007
+  table:
+    module: itk.corvustt
+    port: 11008
+  tango:
+    module: marzhauser.tango
+    port: 11009
+  dummy:
+    module: keithley.k2470
+    port: 12001
+    request_delay: 0.001

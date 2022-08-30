@@ -1,0 +1,20 @@
+# This is for testing the KIT test cards
+
+Campaign: KIT test
+Creator: Dominic Bloech 18.02.2018
+
+reference pad: C1
+reference pad: R2
+reference pad: C4
+
+
+strip	x	y	z
+C1	0	0	0
+C2	0	-13000	0
+C3	0	-26000	0
+R1	0	-39000	0
+R2	0	-52000	0
+C4	31500	-7000	0
+C5	31500	-20000	0
+CR6	31500	-33000	0
+CR7	31500	-46000	0
