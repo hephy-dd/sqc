@@ -38,4 +38,4 @@ class TestTransformation:
         assert tr((0, 0, 0)) == (0, 0, 0)
         assert tr((0, 100, 0)) == (0, 100, 10)
         assert tr((0, 50, 0)) == (0, 50, 5)
-        assert tr((50, 100, 0)) == (50, 100, 5)
+        assert round_values(tr((50, 100, 0))) == round_values((50, 100, 5))
