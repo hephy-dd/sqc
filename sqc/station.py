@@ -1,7 +1,7 @@
 import logging
 import statistics
 import time
-from typing import Any, Callable, Dict
+from typing import Any, Callable, Dict, Generator, Iterable, Tuple
 
 from comet.filters import std_mean_filter
 from comet.functions import LinearRange
@@ -11,7 +11,7 @@ from .controller.environ import EnvironController
 from .controller.table import Table
 from .core.event import Event
 from .core.formatting import format_channels, format_metric, format_switch
-from .core.resource import Resource, create_driver
+from .core.resource import Resource, create_driver, Driver
 from .core.timer import Timer
 from .settings import Settings
 
@@ -20,13 +20,13 @@ __all__ = ["Station"]
 logger = logging.getLogger(__name__)
 
 
-def identify(instr):
+def identify(instr) -> str:
     if hasattr(instr, "identify"):
         return instr.identify()
     return "n/a"
 
 
-def iter_errors(instr):
+def iter_errors(instr) -> Generator[Any, None, None]:
     while True:
         error = instr.next_error()
         if error is None:
@@ -56,7 +56,7 @@ def wait_movement_finished(position, timeout=60.0, interval=0.100):
 class Station:
 
     def __init__(self) -> None:
-        self.resources: Dict[str, Any] = {}
+        self._resources: Dict[str, Driver] = {}
         self.registered_resources = [
             "hv_switch",
             "lv_switch",
@@ -68,41 +68,45 @@ class Station:
             "tango"
         ]
 
-        self.bias_voltage_changed = Event()
+        self.bias_voltage_changed: Event = Event()
 
-        self.environ = EnvironController()
+        self.environ: EnvironController = EnvironController()
         self.environ.start()
 
+    def get_resource(self, name: str) -> Driver:
+        self.open_resource(name)
+        return self._resources[name]
+
     def open_resource(self, name: str) -> None:
-        if name not in self.resources:
+        if name not in self._resources:
             resource = Settings().createResource(name)
-            self.resources[name] = create_driver(resource.model)(resource.__enter__())
+            self._resources[name] = create_driver(resource.model)(resource.__enter__())
             logger.info("Opened resource: %s %s", resource.model, resource.address)
 
     def close_resource(self, name: str) -> None:
-        resource = self.resources.get(name)
+        resource = self.get_resource(name)
         if resource is not None:
             resource.resource.__exit__()
             logger.info("Closed resource: %s %s", resource.resource.model, resource.resource.address)
-            del self.resources[name]
+            del self._resources[name]
 
     def open_resources(self) -> None:
         for name in self.registered_resources:
             self.open_resource(name)
 
-    def close_resources(self):
-        for name in list(self.resources.keys()):
+    def close_resources(self) -> None:
+        for name in list(self._resources.keys()):
             self.close_resource(name)
 
-    def clear_visa_bus(self):
-        for resource in self.resources.values():
+    def clear_visa_bus(self) -> None:
+        for resource in self._resources.values():
             try:
                 resource.resource.clear()
             except Exception as exc:
                 logger.exception(exc)
                 logger.error("Failed to clear VISA bus for resource: %r", resource.resource)
 
-    def finalize(self):
+    def finalize(self) -> None:
         logger.info("Finalizing measurements...")
         # Bring down active sources.
         self.safe_recover_smu()
@@ -113,7 +117,7 @@ class Station:
         self.close_resources()
         logger.info("Finalizing measurements... done.")
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.environ.shutdown()
         self.close_resources()
 
@@ -135,7 +139,7 @@ class Station:
 
     def check_identities(self) -> None:
         for name in self.registered_resources:
-            instr = self.resources.get(name)
+            instr = self.get_resource(name)
             if instr is None:
                 raise ValueError(f"No such resource: {name!r}")
             logger.info("Identified %s: %s", name, identify(instr))
@@ -148,9 +152,9 @@ class Station:
 
     # HV Switch
 
-    def hv_switch_release(self):
+    def hv_switch_release(self) -> None:
         logger.info("Release all HV switch channels.")
-        hv_switch = self.resources.get('hv_switch')
+        hv_switch = self.get_resource("hv_switch")
 
         hv_switch.open_all_channels()
 
@@ -158,9 +162,9 @@ class Station:
         if closed_channels:
             raise RuntimeError(f"Failed to release HV switch channels: {closed_channels}")
 
-    def hv_switch_apply(self, channels):
+    def hv_switch_apply(self, channels: Iterable[str]) -> None:
         logger.info("Apply HV switch channels: %s", format_channels(channels))
-        hv_switch = self.resources.get('hv_switch')
+        hv_switch = self.get_resource("hv_switch")
 
         open_channels = set(hv_switch.closed_channels) - set(channels)
         if open_channels:  # only open removed channels
@@ -177,9 +181,9 @@ class Station:
 
     # LV Switch
 
-    def lv_switch_release(self):
+    def lv_switch_release(self) -> None:
         logger.info("Release all LV switch channels.")
-        lv_switch = self.resources.get('lv_switch')
+        lv_switch = self.get_resource("lv_switch")
 
         lv_switch.open_all_channels()
 
@@ -187,9 +191,9 @@ class Station:
         if closed_channels:
             raise RuntimeError(f"Failed to release LV channels: {closed_channels}")
 
-    def lv_switch_apply(self, channels):
+    def lv_switch_apply(self, channels: Iterable[str]) -> None:
         logger.info("Apply LV switch channels: %s", format_channels(channels))
-        lv_switch = self.resources.get('lv_switch')
+        lv_switch = self.get_resource("lv_switch")
 
         open_channels = set(lv_switch.closed_channels) - set(channels)
         if open_channels:  # only open removed channels
@@ -228,33 +232,33 @@ class Station:
 
         data = environ.snapshot()
 
-        chuck_temperature = data.get('pt100_1', float('nan'))
+        chuck_temperature = data.get("pt100_1", float("nan"))
         logger.info("Chuck temperature: %s degC", chuck_temperature)
 
-        chuck_block_temperature = data.get('pt100_2', float('nan'))
+        chuck_block_temperature = data.get("pt100_2", float("nan"))
         logger.info("Chuck block temperature: %s degC", chuck_block_temperature)
 
-        box_humidity = data.get('box_humidity', float('nan'))
+        box_humidity = data.get("box_humidity", float("nan"))
         logger.info("Box box_humidity: %s rel%%", box_humidity)
 
         logger.info("Checking box state... done.")
 
-    def box_environment(self) -> dict:
+    def box_environment(self) -> Dict[str, Any]:
         return self.environ.snapshot()
 
-    def safe_recover_box(self):
+    def safe_recover_box(self) -> None:
         logger.info("Dimming box lights.")
         environ = self.environ
         environ.set_box_light_state(False)
         environ.set_microscope_light_state(False)
 
-    def box_switch_lights_on(self):
+    def box_switch_lights_on(self) -> None:
         logger.info("Switching box and microscope lights on.")
         environ = self.environ
         environ.set_box_light_state(True)
         environ.set_microscope_light_state(True)
 
-    def box_switch_lights_off(self):
+    def box_switch_lights_off(self) -> None:
         logger.info("Switching box and microscope lights off.")
         environ = self.environ
         environ.set_box_light_state(False)
@@ -264,7 +268,7 @@ class Station:
 
     def safe_recover_smu(self) -> None:
         logger.info("Safe recover SMU...")
-        smu = self.resources.get('smu')
+        smu = self.get_resource("smu")
         output = smu.output
         if output == smu.OUTPUT_ON:
             logger.info("SMU output is active...")
@@ -295,7 +299,7 @@ class Station:
 
     def safe_initialize_smu(self) -> None:
         logger.info("Safe initialize SMU...")
-        smu = self.resources.get('smu')
+        smu = self.get_resource("smu")
         logger.info("Reset SMU...")
         smu.reset()
         smu.clear()
@@ -306,56 +310,56 @@ class Station:
             raise RuntimeError(f"SMU Error: {error.code}, {error.message}")
         logger.info("Safe initialize SMU... done.")
 
-    def smu_check_errors(self):
-        smu = self.resources.get('smu')
+    def smu_check_errors(self) -> None:
+        smu = self.get_resource("smu")
         for error in iter_errors(smu):
             raise RuntimeError(f"SMU Error: {error.code}, {error.message}")
 
-    def smu_output(self):
-        smu = self.resources.get('smu')
+    def smu_output(self) -> bool:
+        smu = self.get_resource("smu")
         return smu.output
 
-    def smu_set_output(self, state: bool):
-        smu = self.resources.get('smu')
+    def smu_set_output(self, state: bool) -> None:
+        smu = self.get_resource("smu")
         smu.output = state
 
     def smu_voltage(self) -> float:
-        smu = self.resources.get('smu')
+        smu = self.get_resource("smu")
         return smu.voltage_level
 
     def smu_set_voltage(self, level: float) -> None:
-        logger.info("Set SMU2 voltage: %s", format_metric(level, 'V'))
-        smu = self.resources.get('smu')
+        logger.info("Set SMU2 voltage: %s", format_metric(level, "V"))
+        smu = self.get_resource("smu")
         smu.voltage_level = level
 
     def smu_set_voltage_range(self, level: float) -> None:
         level_abs = abs(level)
-        logger.info("Set SMU2 voltage range: %s", format_metric(level_abs, 'V'))
-        smu = self.resources.get('smu')
+        logger.info("Set SMU2 voltage range: %s", format_metric(level_abs, "V"))
+        smu = self.get_resource("smu")
         smu.voltage_range = level_abs
 
     def smu_set_current_compliance(self, level: float) -> None:
-        logger.info("Set SMU2 current compliance: %s", format_metric(level, 'A'))
-        smu = self.resources.get('smu')
+        logger.info("Set SMU2 current compliance: %s", format_metric(level, "A"))
+        smu = self.get_resource("smu")
         smu.current_compliance = level
 
     def smu_read_current(self) -> float:
-        smu = self.resources.get('smu')
+        smu = self.get_resource("smu")
         value = smu.measure_current()
-        logger.info("Read SMU2 current: %s", format_metric(value, 'A'))
+        logger.info("Read SMU2 current: %s", format_metric(value, "A"))
         return value
 
     def smu_read_voltage(self) -> float:
-        smu = self.resources.get('smu')
+        smu = self.get_resource("smu")
         value = smu.measure_voltage()
-        logger.info("Read SMU2 voltage: %s", format_metric(value, 'V'))
+        logger.info("Read SMU2 voltage: %s", format_metric(value, "V"))
         return value
 
-    def smu_compliance_tripped(self):
-        smu = self.resources.get('smu')
+    def smu_compliance_tripped(self) -> bool:
+        smu = self.get_resource("smu")
         return smu.compliance_tripped
 
-    def smu_recover_voltage(self, voltage_step=10.0, waiting_time=0.25) -> None:
+    def smu_recover_voltage(self, voltage_step: float = 10.0, waiting_time: float = 0.25) -> None:
         """Recover voltage level to zero without changing output state."""
         output = self.smu_output()
         if output:
@@ -368,7 +372,9 @@ class Station:
         else:
             self.smu_set_voltage(0)
 
-    def smu_ramp_voltage(self, voltage_end, *, voltage_step=10.0, waiting_time=0.25, before_step=None, after_step=None) -> None:
+    def smu_ramp_voltage(self, voltage_end: float, *, voltage_step: float = 10.0,
+                         waiting_time: float = 0.25, before_step: Callable = None,
+                         after_step: Callable = None) -> None:
         """Ramp voltage to `voltage_end` in `voltage_step`s providing callbacks
         to be executed for every step before and after applying the next voltage
         step."""
@@ -398,7 +404,7 @@ class Station:
 
     def safe_recover_bias_smu(self) -> None:
         logger.info("Safe recover Bias SMU...")
-        smu = self.resources.get('bias_smu')
+        smu = self.get_resource("bias_smu")
         output = smu.output
         if output == smu.OUTPUT_ON:
             logger.info("Bias SMU output is active...")
@@ -436,7 +442,7 @@ class Station:
 
     def safe_initialize_bias_smu(self) -> None:
         logger.info("Safe initialize Bias SMU...")
-        bias_smu = self.resources.get('bias_smu')
+        bias_smu = self.get_resource("bias_smu")
         logger.info("Reset Bias SMU...")
         bias_smu.reset()
         time.sleep(.50)
@@ -447,52 +453,52 @@ class Station:
             raise RuntimeError(f"Bias SMU Error: {error.code}, {error.message}")
         logger.info("Safe initialize Bias SMU... done.")
 
-    def bias_output(self):
-        bias_smu = self.resources.get('bias_smu')
+    def bias_output(self) -> bool:
+        bias_smu = self.get_resource("bias_smu")
         return bias_smu.output
 
-    def bias_set_output(self, state: bool):
-        bias_smu = self.resources.get('bias_smu')
+    def bias_set_output(self, state: bool) -> None:
+        bias_smu = self.get_resource("bias_smu")
         bias_smu.output = state
 
     def bias_voltage(self) -> float:
-        bias_smu = self.resources.get('bias_smu')
+        bias_smu = self.get_resource("bias_smu")
         return bias_smu.voltage_level
 
     def bias_set_voltage(self, level: float) -> None:
-        logger.info("Set Bias voltage: %s", format_metric(level, 'V'))
-        bias_smu = self.resources.get('bias_smu')
+        logger.info("Set Bias voltage: %s", format_metric(level, "V"))
+        bias_smu = self.get_resource("bias_smu")
         bias_smu.voltage_level = level
         self.bias_voltage_changed(level)
 
     def bias_set_voltage_range(self, level: float) -> None:
         level_abs = abs(level)
-        logger.info("Set Bias voltage range: %s", format_metric(level_abs, 'V'))
-        bias_smu = self.resources.get('bias_smu')
+        logger.info("Set Bias voltage range: %s", format_metric(level_abs, "V"))
+        bias_smu = self.get_resource("bias_smu")
         bias_smu.voltage_range = level_abs
 
     def bias_set_current_compliance(self, level: float) -> None:
-        logger.info("Set Bias current compliance: %s", format_metric(level, 'A'))
-        bias_smu = self.resources.get('bias_smu')
+        logger.info("Set Bias current compliance: %s", format_metric(level, "A"))
+        bias_smu = self.get_resource("bias_smu")
         bias_smu.current_compliance = level
 
     def bias_read_current(self) -> float:
-        bias_smu = self.resources.get('bias_smu')
+        bias_smu = self.get_resource("bias_smu")
         value = bias_smu.measure_current()
-        logger.info("Read Bias current: %s", format_metric(value, 'A'))
+        logger.info("Read Bias current: %s", format_metric(value, "A"))
         return value
 
     def bias_read_voltage(self) -> float:
-        bias_smu = self.resources.get('bias_smu')
+        bias_smu = self.get_resource("bias_smu")
         value = bias_smu.measure_voltage()
-        logger.info("Read Bias voltage: %s", format_metric(value, 'V'))
+        logger.info("Read Bias voltage: %s", format_metric(value, "V"))
         return value
 
-    def bias_compliance_tripped(self):
-        bias_smu = self.resources.get('bias_smu')
+    def bias_compliance_tripped(self) -> None:
+        bias_smu = self.get_resource("bias_smu")
         return bias_smu.compliance_tripped
 
-    def bias_recover_voltage(self, voltage_step=10.0, waiting_time=0.25):
+    def bias_recover_voltage(self, voltage_step: float = 10.0, waiting_time: float = 0.25) -> None:
         """Recover voltage level to zero without changing output state."""
         output = self.bias_output()
         if output:
@@ -505,7 +511,9 @@ class Station:
         else:
             self.bias_set_voltage(0)
 
-    def bias_ramp_voltage(self, voltage_end, *, voltage_step=10.0, waiting_time=0.25, before_step=None, after_step=None) -> None:
+    def bias_ramp_voltage(self, voltage_end: float, *, voltage_step: float = 10.0,
+                          waiting_time: float = 0.25, before_step: Callable = None,
+                          after_step: Callable = None) -> None:
         """Ramp voltage to `voltage_end` in `voltage_step`s providing callbacks
         to be executed for every step before and after applying the next voltage
         step."""
@@ -534,7 +542,7 @@ class Station:
     # LCR
 
     def safe_initialize_lcr(self) -> None:
-        lcr = self.resources.get('lcr')
+        lcr = self.get_resource("lcr")
         logger.info("Safe initialize LCR Meter...")
         logger.info("Reset LCR Meter...")
         lcr.reset()
@@ -543,42 +551,42 @@ class Station:
         logger.info("Set LCR Meter function: CPRP")
         lcr.function = lcr.FUNCTION_CPRP
         logger.info("Set LCR Meter measurement time: LONG")
-        lcr.set_measurement_time('LONG')
+        lcr.set_measurement_time("LONG")
         logger.info("Set LCR Meter correction length: 4 m")
         lcr.correction_length = 4
         # TODO add to generic LCR driver!
-        lcr.write(':INIT:CONT OFF')
-        lcr.write(':TRIG:SOUR BUS')
-        lcr.write(':CORR:OPEN:STAT OFF')
-        lcr.write(':CORR:SHORT:STAT OFF')
-        lcr.write(':CORR:LOAD:STAT OFF')
+        lcr.write(":INIT:CONT OFF")
+        lcr.write(":TRIG:SOUR BUS")
+        lcr.write(":CORR:OPEN:STAT OFF")
+        lcr.write(":CORR:SHORT:STAT OFF")
+        lcr.write(":CORR:LOAD:STAT OFF")
         for error in iter_errors(lcr):
             raise RuntimeError(f"LCR Error: {error.code}, {error.message}")
         logger.info("Safe initialize LCR Meter... done.")
 
     def lcr_set_amplitude(self, level: float) -> None:
-        logger.info("Set LCR Meter amplitude: %s", format_metric(level, 'V'))
-        lcr = self.resources.get('lcr')
+        logger.info("Set LCR Meter amplitude: %s", format_metric(level, "V"))
+        lcr = self.get_resource("lcr")
         lcr.amplitude = level
 
     def lcr_set_frequency(self, frequency: float) -> None:
-        logger.info("Set LCR Meter frequency: %s", format_metric(frequency, 'Hz'))
-        lcr = self.resources.get('lcr')
+        logger.info("Set LCR Meter frequency: %s", format_metric(frequency, "Hz"))
+        lcr = self.get_resource("lcr")
         lcr.frequency = frequency
 
     def lcr_enable_open_correction(self, state: bool) -> None:
-        lcr = self.resources.get('lcr')
-        lcr.write(f':CORR:OPEN:STAT {state:d}')
-        assert bool(int(lcr.query(':CORR:OPEN:STAT?'))) == state
+        lcr = self.get_resource("lcr")
+        lcr.write(f":CORR:OPEN:STAT {state:d}")
+        assert bool(int(lcr.query(":CORR:OPEN:STAT?"))) == state
 
-    def lcr_perform_open_correction(self, timeout=16.0) -> None:
+    def lcr_perform_open_correction(self, timeout: float = 16.0) -> None:
         logger.info("Perform LCR Meter open correction...")
-        lcr = self.resources.get('lcr')
-        lcr.resource.write(':CORR:OPEN')
+        lcr = self.get_resource("lcr")
+        lcr.resource.write(":CORR:OPEN")
         t = Timer()
         while t.delta() < timeout:
             try:
-                lcr.resource.query('*OPC?')
+                lcr.resource.query("*OPC?")
             except Exception:
                 ...
             else:
@@ -588,19 +596,20 @@ class Station:
         logger.error("Perform LCR Meter open correction... failed.")
         raise RuntimeError("LCR Meter open correction failed.")
 
-        #lcr.write(':CORR:OPEN:STAT ON')
-        #lcr.query('*OPC?')
+        #lcr.write(":CORR:OPEN:STAT ON")
+        #lcr.query("*OPC?")
 
-    def lcr_acquire_reading(self):
+    def lcr_acquire_reading(self) -> Tuple[float, float]:
         """Return primary and secondary LCR reading."""
-        lcr = self.resources.get('lcr')
+        lcr = self.get_resource("lcr")
         lcr.write("TRIG:IMM")
-        # prim, sec = list(map(float, lcr.query("FETC?").split(',')))[:2]
+        # prim, sec = list(map(float, lcr.query("FETC?").split(",")))[:2]
         prim, sec = lcr.measure_pair()
-        logger.info("LCR Meter reading: %s, %s", format_metric(prim, 'F'), format_metric(sec, 'Ohm'))
+        logger.info("LCR Meter reading: %s, %s", format_metric(prim, "F"), format_metric(sec, "Ohm"))
         return prim, sec
 
-    def lcr_acquire_filter_reading(self, *, maximum=64, threshold=0.005, size=3, delay=.100):
+    def lcr_acquire_filter_reading(self, *, maximum: int = 64, threshold: float = 0.005,
+                                   size: int = 3, delay: float = 0.1) -> Tuple[float, float]:
         """Aquire readings until standard deviation (sample) / mean < threshold.
         Size is the number of samples to be used for filter calculation.
         """
@@ -620,13 +629,14 @@ class Station:
     # Electrometer
 
     def safe_initialize_elm(self) -> None:
-        elm = self.resources.get('elm')
+        elm = self.get_resource("elm")
         logger.info("Safe initialize Electrometer...")
         logger.info("Reset Electrometer...")
         elm.reset()
         time.sleep(.50)
         logger.info("Configure Electrometer...")
 
+        # TODO
         elm.write(":SENS:CURR:RANG:AUTO ON")
         elm.write(":SENS:CURR:NPLC 10")
         elm.write(":SENS:CURR:RANG:AUTO:LLIM 2E-9")
@@ -644,61 +654,61 @@ class Station:
         logger.info("Safe initialize Electrometer... done.")
 
     def elm_set_zero_check(self, enabled: bool) -> None:
-        elm = self.resources.get('elm')
+        elm = self.get_resource("elm")
         logger.info("Set Electrometer zero check: %s", format_switch(enabled))
         elm.write(f":SYST:ZCH {enabled:d}")
         elm.query("*OPC?")
 
     def elm_read_current(self) -> float:
-        elm = self.resources.get('elm')
+        elm = self.get_resource("elm")
         value = float(elm.query(":READ?"))
-        logger.info("Read Electrometer current: %s", format_metric(value, 'A'))
+        logger.info("Read Electrometer current: %s", format_metric(value, "A"))
         return value
 
     # Table
 
-    def table_configure(self):
-        table = self.resources.get('table')
+    def table_configure(self) -> None:
+        table = self.get_resource("table")
         Table(table).configure()
 
-    def table_position(self):
-        table = self.resources.get('table')
+    def table_position(self) -> Tuple[float, float, float]:
+        table = self.get_resource("table")
         return Table(table).position()
 
-    def table_move_relative(self, position):
-        table = self.resources.get('table')
+    def table_move_relative(self, position: Tuple[float, float, float]) -> None:
+        table = self.get_resource("table")
         Table(table).move_relative(position)
 
-    def table_safe_move_absolute(self, position):
-        table = self.resources.get('table')
+    def table_safe_move_absolute(self, position: Tuple[float, float, float]) -> None:
+        table = self.get_resource("table")
         Table(table).safe_move_absolute(position)
 
 
     # Needles
 
-    needles_up_position = 1000.
-    needles_down_position = 0.
+    needles_up_position: float = 1000.
+    needles_down_position: float = 0.
 
-    def needles_position(self):
-        tango = self.resources.get('tango')
+    def needles_position(self) -> None:
+        tango = self.get_resource("tango")
         return tango.pos_x
 
-    def needles_up(self):
-        tango = self.resources.get('tango')
+    def needles_up(self) -> None:
+        tango = self.get_resource("tango")
         logger.info("Moving needles up...")
         tango.moa_x(type(self).needles_up_position)
         self.needles_wait_movement_finished()
         logger.info("Moving needles up... done.")
 
-    def needles_down(self):
-        tango = self.resources.get('tango')
+    def needles_down(self) -> None:
+        tango = self.get_resource("tango")
         logger.info("Moving needles down...")
         tango.moa_x(type(self).needles_down_position)
         self.needles_wait_movement_finished()
         logger.info("Moving needles down... done.")
 
-    def needles_wait_movement_finished(self):
-        tango = self.resources.get('tango')
+    def needles_wait_movement_finished(self) -> None:
+        tango = self.get_resource("tango")
         try:
             wait_movement_finished(lambda: tango.pos_x)
         except TimeoutError as exc:
@@ -717,7 +727,7 @@ class CapacitorDischarge:
 
     def check_discharged_state(self) -> bool:
         samples = []
-        smu = self.station.resources.get('smu')
+        smu = self.station.get_resource("smu")
         for _ in range(self.sample_count):
             voltage = smu.measure_voltage()
             samples.append(voltage)
@@ -731,13 +741,10 @@ class CapacitorDischarge:
         environ = self.station.environ
         environ.set_discharge(True)
 
-        smu = self.station.resources.get('smu')
+        smu = self.station.get_resource("smu")
         smu.route_terminal = smu.ROUTE_TERMINAL_FRONT
         smu.function = smu.FUNCTION_CURRENT
         smu.output = smu.OUTPUT_ON
-
-        for error in iter_errors(smu):
-            raise RuntimeError(f"SMU Error: {error.code}, {error.message}")
 
         time.sleep(self.settle_time)
 
@@ -757,9 +764,6 @@ class CapacitorDischarge:
         smu.output = smu.OUTPUT_OFF
         smu.function = smu.FUNCTION_VOLTAGE
         smu.route_terminal = smu.ROUTE_TERMINAL_REAR
-
-        for error in iter_errors(smu):
-            raise RuntimeError(f"SMU Error: {error.code}, {error.message}")
 
         environ.set_discharge(False)
 

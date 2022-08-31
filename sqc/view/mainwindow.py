@@ -431,7 +431,7 @@ class MainWindow(QtWidgets.QMainWindow):
     # Help
 
     def showContents(self) -> None:
-        contentsUrl = QtWidgets.QApplication.instance().property("ContentsUrl")
+        contentsUrl = QtWidgets.QApplication.instance().property("ContentsUrl")  # type: ignore
         if contentsUrl:
             webbrowser.open(contentsUrl)
 
@@ -439,7 +439,7 @@ class MainWindow(QtWidgets.QMainWindow):
         QtWidgets.QMessageBox.aboutQt(self, "About Qt")
 
     def showAbout(self) -> None:
-        version = QtWidgets.QApplication.instance().applicationVersion()
+        version = QtWidgets.QApplication.applicationVersion()  # type: ignore
         QtWidgets.QMessageBox.about(self, "About", f"<h1>{APP_TITLE}</h1><p>Version {version}</p><p>{APP_DECRIPTION}</p><p>{APP_COPY}</p><p>{APP_LICENSE}</p>")
 
     def showLockedNotification(self) -> None:

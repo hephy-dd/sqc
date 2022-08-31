@@ -1,5 +1,5 @@
 import logging
-from typing import Callable, Dict
+from typing import Callable, Dict, Type
 
 from comet.parameter import ParameterBase
 
@@ -7,11 +7,13 @@ __all__ = ["Measurement"]
 
 logger = logging.getLogger(__name__)
 
-measurement_registry: Dict[str, "Measurement"] = {}
+MeasurementType = Type["Measurement"]
+
+measurement_registry: Dict[str, MeasurementType] = {}
 
 
 def register_measurement(key: str) -> Callable:
-    def register_measurement(cls: type) -> type:
+    def register_measurement(cls: MeasurementType) -> MeasurementType:
         measurement_registry[key] = cls
         return cls
     return register_measurement

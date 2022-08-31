@@ -1,4 +1,4 @@
-from typing import List
+from typing import Iterable
 
 from comet.utils import auto_scale
 
@@ -24,7 +24,7 @@ def format_switch(value: bool) -> str:
     return {False: "OFF", True: "ON"}.get(value) or "N/A"
 
 
-def format_channels(channels: List[str]) -> str:
+def format_channels(channels: Iterable[str]) -> str:
     """Pretty format for switching matrix channels.
     >>> format_channels(["A1", "B1", "C2"])
     'A1, B1, C2'

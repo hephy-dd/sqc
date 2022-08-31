@@ -708,7 +708,7 @@ class DashboardWidget(QtWidgets.QWidget):
         try:
             for widget in self.plotAreaWidgets:
                 repeatWidget = widget.plotWidget("repeat")
-                if repeatWidget:
+                if isinstance(repeatWidget, RecontactPlotWidget):
                     data = self.createRecontactHistogram()
                     repeatWidget.replaceData(data)
         except Exception as exc:

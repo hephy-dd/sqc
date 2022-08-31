@@ -479,6 +479,7 @@ class CacMeasurement(SingleStripMeasurement):
     lcr_frequency = Parameter(default="1 kHz", unit="Hz")
     cac_cp_minimum = Parameter(default=0, unit="F", minimum=0)
     cac_cp_maximum = Parameter(default=0, unit="F", minimum=0)
+    soft_correction = Parameter(default=True, type=bool)
     n_samples = Parameter(default=5, type=int, minimum=1)
 
     def before_sequence(self) -> None:
@@ -491,17 +492,18 @@ class CacMeasurement(SingleStripMeasurement):
         # TODO
         station.lcr_perform_open_correction()
         station.lcr_enable_open_correction(True)
-        #
-        station.lcr_set_amplitude(self.lcr_amplitude)
-        station.lcr_set_frequency(self.lcr_frequency)
-        readings = []
-        self.set_progress(0, n_samples, 0)
-        for i in range(n_samples):
-            readings.append(station.lcr_acquire_reading())
-            self.set_progress(0, n_samples, i + 1)
-        cp_corr = np.median([reading[0] for reading in readings])
-        logger.info("Cac correction (median): %s F", cp_corr)
-        self.context.set_open_correction(self.namespace, self.type, self.name, "cp", cp_corr)
+        # TODO
+        if self.soft_correction:
+            station.lcr_set_amplitude(self.lcr_amplitude)
+            station.lcr_set_frequency(self.lcr_frequency)
+            readings = []
+            self.set_progress(0, n_samples, 0)
+            for i in range(n_samples):
+                readings.append(station.lcr_acquire_reading())
+                self.set_progress(0, n_samples, i + 1)
+            cp_corr = np.median([reading[0] for reading in readings])
+            logger.info("Cac correction (median): %s F", cp_corr)
+            self.context.set_open_correction(self.namespace, self.type, self.name, "cp", cp_corr)
         self.set_message("")
 
     def initialize(self):
@@ -523,7 +525,9 @@ class CacMeasurement(SingleStripMeasurement):
 
         def lcr_acquire_corr_reading():
             prim, sec = station.lcr_acquire_reading()
-            return apply_correction(prim, sec)
+            if self.soft_correction:
+                return apply_correction(prim, sec)
+            return prim, sec
 
         logger.info("Steady state check...")
         r = steady_state_check(lambda: lcr_acquire_corr_reading()[0], n_samples=2, rsq=0.5, max_slope=1e-6, waiting_time=0)
@@ -556,6 +560,7 @@ class CIntMeasurement(SingleStripMeasurement):
     lcr_frequency = Parameter(default="1 MHz", unit="Hz")
     cint_cp_minimum = Parameter(default=0, unit="F", minimum=0)
     cint_cp_maximum = Parameter(default=0, unit="F", minimum=0)
+    soft_correction = Parameter(default=True, type=bool)
     n_samples = Parameter(default=5, type=int, minimum=1)
 
     def before_sequence(self) -> None:
@@ -567,17 +572,18 @@ class CIntMeasurement(SingleStripMeasurement):
         # TODO
         station.lcr_perform_open_correction()
         station.lcr_enable_open_correction(True)
-        #
-        station.lcr_set_amplitude(self.lcr_amplitude)
-        station.lcr_set_frequency(self.lcr_frequency)
-        readings = []
-        self.set_progress(0, n_samples, 0)
-        for i in range(n_samples):
-            readings.append(station.lcr_acquire_reading())
-            self.set_progress(0, n_samples, i + 1)
-        cp_corr = np.median([reading[0] for reading in readings])
-        logger.info("Cint correction (median): %s F", cp_corr)
-        self.context.set_open_correction(self.namespace, self.type, self.name, "cp", cp_corr)
+        # TODO
+        if self.soft_correction:
+            station.lcr_set_amplitude(self.lcr_amplitude)
+            station.lcr_set_frequency(self.lcr_frequency)
+            readings = []
+            self.set_progress(0, n_samples, 0)
+            for i in range(n_samples):
+                readings.append(station.lcr_acquire_reading())
+                self.set_progress(0, n_samples, i + 1)
+            cp_corr = np.median([reading[0] for reading in readings])
+            logger.info("Cint correction (median): %s F", cp_corr)
+            self.context.set_open_correction(self.namespace, self.type, self.name, "cp", cp_corr)
         self.set_message("")
 
     def initialize(self):
@@ -602,7 +608,9 @@ class CIntMeasurement(SingleStripMeasurement):
 
         def lcr_acquire_corr_reading():
             prim, sec = station.lcr_acquire_reading()
-            return apply_correction(prim, sec)
+            if self.soft_correction:
+                return apply_correction(prim, sec)
+            return prim, sec
 
         logger.info("Steady state check...")
         r = steady_state_check(lambda: lcr_acquire_corr_reading()[0], n_samples=2, rsq=0.3, max_slope=1e-6, waiting_time=0)

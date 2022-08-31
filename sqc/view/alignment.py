@@ -444,7 +444,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         buttons = self.stepButtonGroup.buttons()
         for button in buttons:
             self.stepButtonGroup.removeButton(button)
-            button.setParent(None)
+            button.setParent(None)  # type: ignore
             button.deleteLater()
 
     def createStepButtons(self) -> None:
