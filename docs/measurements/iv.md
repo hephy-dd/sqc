@@ -1,40 +1,20 @@
----
-layout: default
-title: IV
-parent: Measurements
-nav_order: 10
----
-
 # IV
 
 IV ramp using Bias SMU for measurements.
 
-Measurement type: `iv`
+Type: `iv`
 
-Instruments: `Bias SMU`
+## Configuration
 
-## Parameters
-
-| Parameter                | Type    | Default | Description |
-|--------------------------|---------|---------|-------------|
-|`hv_channels`             |`list`   |`[]`     |             |
-|`voltage_begin`           |`volt`   |`0 V`    |Start voltage (`-1000 V` to `0 V`). |
-|`voltage_end`             |`volt`   |`0 V`    |End voltage (`-1000 V` to `0 V`). |
-|`voltage_step`            |`volt`   |`0 V`    |Step voltage (`-100 V` to `+100 V`). |
-|`waiting_time`            |`seconds`|`1 s`    |Waiting time after setting voltage and before measuring current. |
-|`compliance`              |`ampere` |required |Current compliance. |
-
-## Data format (JSON)
-
-| Column                    | Type    | Description |
-|---------------------------|---------|-------------|
-|`timestamp`                |`second` |Timestamp in seconds. |
-|`temperature`              |`degC`   |Chuck temperature in degree Celcius. |
-|`humidity`                 |`percent`|Relative box humidity in percent. |
-|`index`                    |`int`    | |
-|`bias_voltage`             |`volt`   | |
-|`bias_smu_v`               |`volt`   | |
-|`bias_smu_i`               |`volt`   | |
+- **name**: (str) name of node.
+- **enabled**: (bool) enabled state. Default is `true`.
+- **parameters**:
+    - **hv_channels**: (list) list of high voltage channels. Default is `[]`.
+    - **voltage_begin**: (metric) start voltage (`-1000 V` to `0 V`). Required.
+    - **voltage_end**: (metric) end voltage (`-1000 V` to `0 V`). Required.
+    - **voltage_step**: (metric) step voltage (`-100 V` to `+100 V`). Required.
+    - **waiting_time**: (metric) waiting time in seconds between voltage change and readings. Default is `1 s`.
+    - **compliance**: (metric) current compliance for bias source in Ampere. Required.
 
 ## Example configuration
 
@@ -50,3 +30,15 @@ Instruments: `Bias SMU`
     waiting_time: 1 s
     compliance: 25 uA
 ```
+
+## Output
+
+| Column                    | Type    | Description |
+|---------------------------|---------|-------------|
+|`timestamp`                |`float`  |Timestamp in seconds. |
+|`temperature`              |`float`  |Chuck temperature in degree Celcius. |
+|`humidity`                 |`float`  |Relative box humidity in percent. |
+|`index`                    |`int`    |Index for sorting. |
+|`bias_voltage`             |`float`  |Voltage level applied in Volt. |
+|`bias_smu_v`               |`float`  |Voltage reading in Volt. |
+|`bias_smu_i`               |`float`  |Current redaing in Ampere. |

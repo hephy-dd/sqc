@@ -1,0 +1,26 @@
+site_name: SQC
+site_url: https://hephy-dd.github.io/sqc/
+repo_url: https://github.com/hephy-dd/sqc/
+site_description:
+site_author: HEPHY
+copyright: "Copyright &copy; 2022 HEPHY. SQC is licensed under the <a href=\"https://github.com/hephy-dd/sqc/tree/main/LICENSE\">GNU General Public License Version 3</a>."
+nav:
+    - Home: index.md
+    - instruments.md
+    - Measurements:
+        - measurements/iv.md
+        - measurements/cv.md
+        - measurements/stripscan.md
+        - measurements/rpoly.md
+        - measurements/istrip.md
+        - measurements/idiel.md
+        - measurements/cac.md
+        - measurements/cint.md
+        - measurements/rint.md
+        - measurements/idark.md
+
+markdown_extensions:
+    - smarty
+theme:
+    name: readthedocs
+    locale: en

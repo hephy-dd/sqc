@@ -1,9 +1,0 @@
-remote_theme: just-the-docs/just-the-docs
-
-title: "SQC"
-
-aux_links:
-  "SQC on GitHub":
-    - "//github.com/hephy-dd/sqc"
-
-footer_content: "Copyright &copy; 2022 HEPHY. SQC is licensed under the <a href=\"https://github.com/hephy-dd/sqc/tree/master/LICENSE\">GNU General Public License Version 3</a>."
