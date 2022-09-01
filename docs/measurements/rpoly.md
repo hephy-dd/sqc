@@ -1,6 +1,6 @@
 # Rpoly
 
-Strip measurement.
+Poly-Silicon resistor strip measurement.
 
 Type: `rpoly`
 

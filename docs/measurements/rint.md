@@ -1,6 +1,6 @@
 # Rint
 
-Strip measurement.
+Interstrip resistance measurement.
 
 Type: `rint`
 

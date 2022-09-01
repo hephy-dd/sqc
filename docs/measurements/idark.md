@@ -36,4 +36,4 @@ Type: `idark`
 |`index`                    |`int`    |Index for sorting. |
 |`strip`                    |`str`    |Strip name. |
 |`strip_index`              |`int`    |Strip index. |
-|`idark_i`                   |`float`  | |
+|`idark_i`                  |`float`  | |

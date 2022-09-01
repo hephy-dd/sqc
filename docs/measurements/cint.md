@@ -1,6 +1,6 @@
 # Cint
 
-Strip measurement.
+Interstrip capacitance measurement.
 
 Type: `cint`
 

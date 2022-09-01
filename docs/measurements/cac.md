@@ -1,6 +1,6 @@
 # Cac
 
-Strip measurement.
+Coupling capacitance trip measurement.
 
 Type: `cac`
 

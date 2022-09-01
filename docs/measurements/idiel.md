@@ -1,6 +1,6 @@
 # Idiel
 
-Strip measurement.
+Dielectric current strip measurement.
 
 Type: `idiel`
 
