@@ -4,13 +4,13 @@ import logging
 import queue
 import threading
 import time
-from typing import Tuple
+from typing import Any, Tuple
 from functools import partial
 
 from PyQt5 import QtCore
 
 from ..core.timer import Timer
-from ..core.request import Request
+from ..core.request import RequestHandler
 from ..settings import Settings
 
 __all__ = ["TableController"]
@@ -75,6 +75,20 @@ class Table:  # TODO
         self.driver.joystick = enabled
 
 
+class TableContext:
+
+    def __init__(self, station):
+        self.station = station
+
+    def __enter__(self):
+        self.station.open_resource("table")
+        return Table(self.station.get_resource("table"))
+
+    def __exit__(self, *exc):
+        self.station.close_resource("table")
+        return False
+
+
 class TableController(QtCore.QObject):
 
     positionChanged = QtCore.pyqtSignal(tuple)
@@ -85,51 +99,21 @@ class TableController(QtCore.QObject):
 
     def __init__(self, station, parent=None) -> None:
         super().__init__(parent)
-        self.station = station
-        self._shutdown: threading.Event = threading.Event()
-        self._queue: queue.Queue = queue.Queue()
-
-        self._thread = threading.Thread(target=self.eventLoop)
+        self.handler = RequestHandler(TableContext(station))
 
     def start(self) -> None:
-        self._thread.start()
-
-    def eventLoop(self) -> None:
-        while not self._shutdown.is_set():
-            try:
-                self.enterContext()
-            except Exception as exc:
-                logger.exception(exc)
-                time.sleep(1.)
-            time.sleep(.250)  # throttle
-
-    def enterContext(self) -> None:
-        try:
-            self.station.open_resource("table")
-            context = Table(self.station.get_resource("table"))
-            while not self._shutdown.is_set():
-                self.handleRequest(context)
-        finally:
-            self.station.close_resource("table")
-
-    def handleRequest(self, context) -> None:
-        try:
-            request = self._queue.get(timeout=.250)
-            self._queue.task_done()
-        except queue.Empty:
-            ...
-        else:
-            request(context)
+        self.handler.start()
 
     def shutdown(self) -> None:
-        self._shutdown.set()
-        self._thread.join()
+        self.handler.shutdown()
+
+    # Requests
 
     def requestPosition(self) -> None:
         def request(context):
             position = context.position()
             self.positionChanged.emit(position)
-        self._queue.put(Request(request))
+        self.handler.submit(request)
 
     def moveRelative(self, position) -> None:
         def request(context):
@@ -137,7 +121,7 @@ class TableController(QtCore.QObject):
                 context.move_relative(position, position_changed=self.positionChanged.emit)
             finally:
                 self.movementFinished.emit()
-        self._queue.put(Request(request))
+        self.handler.submit(request)
 
     def moveAbsolute(self, position) -> None:
         def request(context):
@@ -145,9 +129,9 @@ class TableController(QtCore.QObject):
                 context.safe_move_absolute(position, position_changed=self.positionChanged.emit)
             finally:
                 self.movementFinished.emit()
-        self._queue.put(Request(request))
+        self.handler.submit(request)
 
     def setJoystickEnabled(self, enabled: bool) -> None:
         def request(context):
             context.set_joystick_enabled(enabled)
-        self._queue.put(Request(request))
+        self.handler.submit(request)
