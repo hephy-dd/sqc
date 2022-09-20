@@ -264,6 +264,11 @@ class Station:
         environ.set_box_light_state(False)
         environ.set_microscope_light_state(False)
 
+    def box_set_test_running(self, state: bool) -> None:
+        logger.info("Set box test running: %s", state)
+        environ = self.environ
+        environ.set_test_led_state(state)
+
     # SMU
 
     def safe_recover_smu(self) -> None:
