@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2022-09-20
+### Added
+- Prevent measurement if environment out of bounds (#1).
+- Set test-running in environment box (#2).
+
 ## [0.1.0] - 2022-09-01
 ### Added
 - Documentation of measurement configuration parameters.
