@@ -559,8 +559,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.clearProgress()
         self.setLocked(False)
 
+        if self.dashboardWidget.wasEnvironOutOfBounds():
+            QtWidgets.QMessageBox.warning(self, "Environment", "Temperature/Humidity limits exceeded durring past measurement.")
+
     @QtCore.pyqtSlot()
     def enterRunningState(self):
+        self.dashboardWidget.resetEnvironOutOfBounds()
         self.setLocked(True)
         self.newMeasurementAction.setEnabled(False)
         self.profilesAction.setEnabled(False)

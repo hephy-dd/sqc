@@ -1,7 +1,8 @@
 site_name: SQC
 site_url: https://hephy-dd.github.io/sqc/
 repo_url: https://github.com/hephy-dd/sqc/
-site_description:
+edit_uri: edit/main/docs/
+site_description: Sensor Quality Control for the CMS Tracker
 site_author: HEPHY
 copyright: "Copyright &copy; 2022 HEPHY. SQC is licensed under the <a href=\"https://github.com/hephy-dd/sqc/tree/main/LICENSE\">GNU General Public License Version 3</a>."
 nav:

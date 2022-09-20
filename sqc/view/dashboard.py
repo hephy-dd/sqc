@@ -62,6 +62,8 @@ class DashboardWidget(QtWidgets.QWidget):
         self.context.stripscan_progress_changed.connect(self.setStripscanProgress)
         self.context.stripscan_estimation_changed.connect(self.setStripscanEstimation)
 
+        self.environErrors: int = 0
+
         # Sensor name
 
         self.nameLabel = QtWidgets.QLabel("Sensor Name")
@@ -751,6 +753,15 @@ class DashboardWidget(QtWidgets.QWidget):
 
     # Environment
 
+    def setEnvironOutOfBounds(self) -> None:
+        self.environErrors += 1
+
+    def wasEnvironOutOfBounds(self) -> bool:
+        return self.environErrors > 0
+
+    def resetEnvironOutOfBounds(self) -> None:
+        self.environErrors = 0
+
     def updateEnvironData(self) -> None:
         data = self.context.station.box_environment()
         self.setChuckTemperature(data.get("pt100_1", float("nan")))
@@ -770,6 +781,7 @@ class DashboardWidget(QtWidgets.QWidget):
         else:
             color = Colors.red
             self.chuckTemperatureAction.setVisible(True)
+            self.setEnvironOutOfBounds()
         setForeground(self.chuckTemperatureLineEdit, color)
 
     def setBoxTemperature(self, temperature: float) -> None:
@@ -782,6 +794,7 @@ class DashboardWidget(QtWidgets.QWidget):
         else:
             color = Colors.red
             self.boxTemperatureAction.setVisible(True)
+            self.setEnvironOutOfBounds()
         setForeground(self.boxTemperatureLineEdit, color)
 
     def setBoxHumidity(self, humidity: float) -> None:
@@ -794,6 +807,7 @@ class DashboardWidget(QtWidgets.QWidget):
         else:
             color = Colors.red
             self.boxHumidityAction.setVisible(True)
+            self.setEnvironOutOfBounds()
         setForeground(self.boxHumidityLineEdit, color)
 
     def setBoxDewPoint(self, dewPoint: float) -> None:
@@ -805,6 +819,7 @@ class DashboardWidget(QtWidgets.QWidget):
         else:
             color = Colors.red
             self.boxDewPointAction.setVisible(True)
+            self.setEnvironOutOfBounds()
         setForeground(self.boxDewPointLineEdit, color)
 
     def setBoxLight(self, state: bool, lux: float) -> None:
