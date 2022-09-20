@@ -89,6 +89,11 @@ class EnvironController(QtCore.QObject):
         self._queue.put(request)
         request.get()
 
+    def set_test_led_state(self, state: bool) -> None:
+        request = Request(lambda res, state=state: res.set_test_led(state))
+        self._queue.put(request)
+        request.get()
+
     # Discarge capacitor
 
     def set_discharge(self, state: bool) -> None:

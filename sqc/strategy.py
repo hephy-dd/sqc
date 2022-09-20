@@ -39,6 +39,7 @@ class SequenceController:
 
         station = self.context.station
         station.open_resources()
+        station.box_set_test_running(True)
         station.safe_initialize()
         station.table_configure()
 
@@ -55,6 +56,7 @@ class SequenceController:
 
         station = self.context.station
         station.finalize()
+        station.box_set_test_running(False)
 
         self.context.set_message("Done.")
 

@@ -106,7 +106,7 @@ class TableController(QtCore.QObject):
     def enterContext(self) -> None:
         try:
             self.station.open_resource("table")
-            context = Table(self.station.resources.get("table"))
+            context = Table(self.station.get_resource("table"))
             while not self._shutdown.is_set():
                 self.handleRequest(context)
         finally:

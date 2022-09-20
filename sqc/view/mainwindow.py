@@ -8,7 +8,7 @@ from typing import List
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..settings import Settings, load_padfiles, load_sequences
-from .dashboard import DashboardWidget
+from .dashboard import DashboardWidget, formatTemperature, formatHumidity
 from .profiles import ProfilesDialog, readProfiles
 from .resources import ResourcesDialog
 from .databrowser import DataBrowserWindow
@@ -480,6 +480,39 @@ class MainWindow(QtWidgets.QMainWindow):
         self.progressBar.setValue(0)
         self.progressBar.hide()
 
+    def checkEnvironment(self, data: dict) -> bool:
+        minTemperature, maxTemperature = self.dashboardWidget.temperatureRange()
+        minHumidity, maxHumidity = self.dashboardWidget.humidityRange()
+
+        temperature = data.get("pt100_1")
+        if temperature is None:
+            QtWidgets.QMessageBox.warning(self, "Temperature", f"Chuck temperature not available.")
+            return False
+
+        if temperature < minTemperature or temperature > maxTemperature:
+            QtWidgets.QMessageBox.warning(self, "Temperature", f"Chuck temperature out of range ({formatTemperature(temperature)}).")
+            return False
+
+        temperature2 = data.get("box_temperature")
+        if temperature2 is None:
+            QtWidgets.QMessageBox.warning(self, "Temperature", f"Box temperature not available.")
+            return False
+
+        if temperature < minTemperature or temperature2 > maxTemperature:
+            QtWidgets.QMessageBox.warning(self, "Temperature", f"Box temperature out of range ({formatTemperature(temperature2)}).")
+            return False
+
+        humidity = data.get("box_humidity")
+        if humidity is None:
+            QtWidgets.QMessageBox.warning(self, "Humidity", f"Box humidity not available.")
+            return False
+
+        if humidity < minHumidity or humidity > maxHumidity:
+            QtWidgets.QMessageBox.warning(self, "Humidity", f"Box humidity out of range ({formatHumidity(humidity)}).")
+            return False
+
+        return True
+
     # Actions
 
     @QtCore.pyqtSlot()
@@ -492,6 +525,10 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         if not self.dashboardWidget.operatorName().strip():
             QtWidgets.QMessageBox.warning(self, "Missing Operator Name", "No operator name is set.")
+            return
+        # Check environment limits
+        data = self.context.station.box_environment()
+        if not self.checkEnvironment(data):
             return
         if not self.confirmReset():
             return
@@ -522,8 +559,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.clearProgress()
         self.setLocked(False)
 
+        if self.dashboardWidget.wasEnvironOutOfBounds():
+            QtWidgets.QMessageBox.warning(self, "Environment", "Temperature/Humidity limits exceeded durring past measurement.")
+
     @QtCore.pyqtSlot()
     def enterRunningState(self):
+        self.dashboardWidget.resetEnvironOutOfBounds()
         self.setLocked(True)
         self.newMeasurementAction.setEnabled(False)
         self.profilesAction.setEnabled(False)
