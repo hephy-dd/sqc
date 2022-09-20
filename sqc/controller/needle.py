@@ -58,7 +58,6 @@ class NeedleController(QtCore.QObject):
     def moveUp(self) -> None:
         try:
             self.station.needles_up()
-            1/0
         finally:
             self.movementFinished.emit()
 
