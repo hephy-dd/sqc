@@ -4,6 +4,7 @@ import os
 import sys
 from logging import Formatter, StreamHandler
 from logging.handlers import RotatingFileHandler
+from typing import List, Type
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -22,18 +23,19 @@ from .core.tango import Tango
 
 from .view.mainwindow import MainWindow
 
+from .plugins import Plugin
 from .plugins.json_writer import JSONWriterPlugin
 from .plugins.legacy_writer import LegacyWriterPlugin
 from .plugins.ueye_camera import UEyeCameraPlugin
 
 __all__ = ["main"]
 
-PACKAGE_PATH = os.path.dirname(__file__)
-ASSETS_PATH = os.path.join(PACKAGE_PATH, "assets")
-LOG_FILENAME = os.path.expanduser("~/sqc.log")
-CONTENTS_URL = "https://github.com/hephy-dd/sqc"
+PACKAGE_PATH: str = os.path.dirname(__file__)
+ASSETS_PATH: str = os.path.join(PACKAGE_PATH, "assets")
+LOG_FILENAME: str = os.path.expanduser("~/sqc.log")
+CONTENTS_URL: str = "https://github.com/hephy-dd/sqc"
 
-ENABLED_PLUGINS = [
+ENABLED_PLUGINS: List[Type[Plugin]] = [
     JSONWriterPlugin,
     LegacyWriterPlugin,
     UEyeCameraPlugin
@@ -65,7 +67,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def add_stream_handler(logger) -> None:
+def add_stream_handler(logger: logging.Logger) -> None:
     formatter = Formatter(
         "%(asctime)s::%(name)s::%(levelname)s::%(message)s",
         "%Y-%m-%dT%H:%M:%S"
@@ -75,7 +77,7 @@ def add_stream_handler(logger) -> None:
     logger.addHandler(handler)
 
 
-def add_rotating_file_handle(logger, filename) -> None:
+def add_rotating_file_handle(logger: logging.Logger, filename: str) -> None:
     file_formatter = logging.Formatter(
         fmt='%(asctime)s:%(name)s:%(levelname)s:%(message)s',
         datefmt='%Y-%m-%dT%H:%M:%S'
@@ -89,7 +91,7 @@ def add_rotating_file_handle(logger, filename) -> None:
     logger.addHandler(file_handler)
 
 
-def configure_logger(logger, debug: bool = False, filename: str = None) -> None:
+def configure_logger(logger: logging.Logger, debug: bool = False, filename: str = None) -> None:
     level = logging.DEBUG if debug else logging.INFO
     logger.setLevel(level)
 

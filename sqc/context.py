@@ -3,10 +3,12 @@
 import logging
 import threading
 from collections import Counter
-from typing import Any, Callable, Dict, List
+from typing import Any, Callable, Dict, List, Optional
 
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtWidgets
 
+from .station import Station
+from .core.geometry import Padfile
 from .core.geometry import load as load_padfile
 
 __all__ = ["Context"]
@@ -29,11 +31,11 @@ class AbortRequested(Exception): ...
 
 class Statistics:
 
-    def __init__(self):
-        self.remeasure_counter = {}
-        self.recontact_counter = {}
+    def __init__(self) -> None:
+        self.remeasure_counter: Dict[str, Counter] = {}
+        self.recontact_counter: Dict[str, Counter] = {}
 
-    def clear(self):
+    def clear(self) -> None:
         self.remeasure_counter.clear()
         self.recontact_counter.clear()
 
@@ -54,11 +56,11 @@ class Context(QtCore.QObject):
     stripscan_progress_changed = QtCore.pyqtSignal(int, int)
     stripscan_estimation_changed = QtCore.pyqtSignal(object, object)
 
-    current_item_changed = QtCore.pyqtSignal(object)
-    item_state_changed = QtCore.pyqtSignal(object, object)
-    item_progress_changed = QtCore.pyqtSignal(object, int, int)
+    current_item_changed = QtCore.pyqtSignal(QtWidgets.QTreeWidgetItem)
+    item_state_changed = QtCore.pyqtSignal(QtWidgets.QTreeWidgetItem, object)
+    item_progress_changed = QtCore.pyqtSignal(QtWidgets.QTreeWidgetItem, int, int)
 
-    current_strip_changed = QtCore.pyqtSignal(object)
+    current_strip_changed = QtCore.pyqtSignal(str)
     data_changed = QtCore.pyqtSignal(str, str, str)
     statistics_changed = QtCore.pyqtSignal()
 
@@ -67,30 +69,30 @@ class Context(QtCore.QObject):
 
     exception_raised = QtCore.pyqtSignal(Exception)
 
-    def __init__(self, station, parent=None):
+    def __init__(self, station: Station, parent: QtCore.QObject = None) -> None:
         super().__init__(parent)
-        self._station = station
-        self._padfile = None
-        self._current_strip = ""
-        self._writers = []
-        self._parameters = {}
-        self._data = {}
-        self._statistics = Statistics()
-        self._suspend_event = threading.Event()
-        self._abort_event = threading.Event()
+        self._station: Station = station
+        self._padfile: Optional[Padfile] = None
+        self._current_strip: str = ""
+        self._writers: List = []
+        self._parameters: Dict[str, Any] = {}
+        self._data: Dict[str, Dict] = {}
+        self._statistics: Statistics = Statistics()
+        self._suspend_event: threading.Event = threading.Event()
+        self._abort_event: threading.Event = threading.Event()
         # Signals
         station.bias_voltage_changed.add(self.bias_voltage_changed.emit)
 
     @property
-    def station(self):
+    def station(self) -> Station:
         return self._station
 
-    def reset(self):
+    def reset(self) -> None:
         self._current_strip = ""
         self._suspend_event = threading.Event()
         self._abort_event = threading.Event()
 
-    def reset_data(self):
+    def reset_data(self) -> None:
         self._data = {}
         self._parameters["open_corrections"] = {}
         self._statistics = Statistics()
@@ -104,28 +106,28 @@ class Context(QtCore.QObject):
         open_corrections.setdefault(namespace, {}).setdefault(type, {}).setdefault(name, {})[key] = value
 
     @property
-    def parameters(self):
+    def parameters(self) -> Dict[str, Any]:
         return self._parameters
 
     @property
-    def padfile(self) -> object:
+    def padfile(self) -> Optional[Padfile]:
         return self._padfile
 
     @property
     def current_strip(self) -> str:
         return self._current_strip
 
-    def set_current_strip(self, strip: str) -> None:
-        self._current_strip = strip
-        self.current_strip_changed.emit(strip)
+    def set_current_strip(self, strip: Optional[str]) -> None:
+        self._current_strip = strip or ""
+        self.current_strip_changed.emit(self._current_strip)
 
-    def set_current_item(self, item):
+    def set_current_item(self, item: QtWidgets.QTreeWidgetItem) -> None:
         self.current_item_changed.emit(item)
 
-    def set_item_state(self, item, state):
+    def set_item_state(self, item: QtWidgets.QTreeWidgetItem, state) -> None:
         self.item_state_changed.emit(item, state)
 
-    def set_item_progress(self, item, value: int, maximum: int):
+    def set_item_progress(self, item: QtWidgets.QTreeWidgetItem, value: int, maximum: int) -> None:
         self.item_progress_changed.emit(item, value, maximum)
 
     # Events
@@ -145,11 +147,11 @@ class Context(QtCore.QObject):
     # Data
 
     @property
-    def data(self) -> dict:
+    def data(self) -> Dict[str, Dict]:
         return self._data
 
     def insert_data(self, namespace: str, type: str, name: str, data: dict, sortkey: str) -> None:
-        items = self._data.setdefault(namespace, {}).setdefault(type, {}).get(name, [])
+        items: Dict[str, Dict] = self._data.setdefault(namespace, {}).setdefault(type, {}).get(name, [])
         self._data.setdefault(namespace, {}).setdefault(type, {})[name] = auto_insert_item(items, data, sortkey=sortkey)
         logger.debug("inserted data: namespace=%r, type=%r, name=%r, data=%r", namespace, type, name, data)
         self.data_changed.emit(namespace, type, name)
@@ -157,17 +159,17 @@ class Context(QtCore.QObject):
     # Statistics
 
     @property
-    def statistics(self):
+    def statistics(self) -> Statistics:
         return self._statistics
 
     # Writer
 
     @property
-    def writers(self):
+    def writers(self) -> List:
         return self._writers.copy()
 
 
-    def add_writer(self, writer):
+    def add_writer(self, writer) -> None:
         if writer not in self._writers:
             self._writers.append(writer)
 
@@ -219,8 +221,8 @@ class Context(QtCore.QObject):
 
     # Padfile
 
-    def load_padfile(self, filename):
-        geometry = {}
+    def load_padfile(self, filename: str) -> None:
+        geometry: Dict[str, Any] = {}
         self._parameters.update({"geometry": geometry})
         try:
             with open(filename) as fp:

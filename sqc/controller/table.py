@@ -4,7 +4,7 @@ import logging
 import queue
 import threading
 import time
-from typing import Tuple
+from typing import Callable, Tuple
 from functools import partial
 
 from PyQt5 import QtCore
@@ -22,9 +22,9 @@ class Table:  # TODO
 
     def __init__(self, driver) -> None:
         self.driver = driver
-        self.poll_timeout = 60.
-        self.poll_interval = .100
-        self.safe_z_offset = 250.
+        self.poll_timeout: float = 60.
+        self.poll_interval: float = .100
+        self.safe_z_offset: float = 250.
 
     def identify(self) -> str:
         return self.driver.identification
@@ -39,12 +39,12 @@ class Table:  # TODO
     def position(self) -> Tuple[float, float, float]:
         return self.driver.pos
 
-    def move_relative(self, position, position_changed=None) -> None:
+    def move_relative(self, position, position_changed: Callable = None) -> None:
         x, y, z = position
         self.driver.rmove(x, y, z)  # non blocking
         self.wait_movement_finished(position_changed)
 
-    def safe_move_absolute(self, position, position_changed=None) -> None:
+    def safe_move_absolute(self, position, position_changed: Callable = None) -> None:
         x, y, z = position
         pos = self.driver.pos
         self.driver.rmove(0, 0, -abs(self.safe_z_offset))  # non blocking
@@ -56,7 +56,7 @@ class Table:  # TODO
         self.driver.rmove(0, 0, z - abs(pos[2]))  # non blocking
         self.wait_movement_finished(position_changed)
 
-    def wait_movement_finished(self, position_changed=None) -> None:
+    def wait_movement_finished(self, position_changed: Callable = None) -> None:
         t = Timer()
         pos = [self.driver.pos]
         while True:
@@ -83,7 +83,7 @@ class TableController(QtCore.QObject):
 
     failed = QtCore.pyqtSignal(Exception)
 
-    def __init__(self, station, parent=None) -> None:
+    def __init__(self, station, parent: QtCore.QObject = None) -> None:
         super().__init__(parent)
         self.station = station
         self._shutdown: threading.Event = threading.Event()
