@@ -5,7 +5,7 @@ import threading
 from collections import Counter
 from typing import Any, Callable, Dict, List, Optional
 
-from PyQt5 import QtCore, QtWidgets
+from PyQt5 import QtCore
 
 from .station import Station
 from .core.geometry import Padfile
@@ -56,9 +56,9 @@ class Context(QtCore.QObject):
     stripscan_progress_changed = QtCore.pyqtSignal(int, int)
     stripscan_estimation_changed = QtCore.pyqtSignal(object, object)
 
-    current_item_changed = QtCore.pyqtSignal(QtWidgets.QTreeWidgetItem)
-    item_state_changed = QtCore.pyqtSignal(QtWidgets.QTreeWidgetItem, object)
-    item_progress_changed = QtCore.pyqtSignal(QtWidgets.QTreeWidgetItem, int, int)
+    current_item_changed = QtCore.pyqtSignal(object)
+    item_state_changed = QtCore.pyqtSignal(object, object)
+    item_progress_changed = QtCore.pyqtSignal(object, int, int)
 
     current_strip_changed = QtCore.pyqtSignal(str)
     data_changed = QtCore.pyqtSignal(str, str, str)
@@ -121,13 +121,13 @@ class Context(QtCore.QObject):
         self._current_strip = strip or ""
         self.current_strip_changed.emit(self._current_strip)
 
-    def set_current_item(self, item: QtWidgets.QTreeWidgetItem) -> None:
+    def set_current_item(self, item: object) -> None:
         self.current_item_changed.emit(item)
 
-    def set_item_state(self, item: QtWidgets.QTreeWidgetItem, state) -> None:
+    def set_item_state(self, item: object, state) -> None:
         self.item_state_changed.emit(item, state)
 
-    def set_item_progress(self, item: QtWidgets.QTreeWidgetItem, value: int, maximum: int) -> None:
+    def set_item_progress(self, item: object, value: int, maximum: int) -> None:
         self.item_progress_changed.emit(item, value, maximum)
 
     # Events
