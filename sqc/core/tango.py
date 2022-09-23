@@ -3,7 +3,7 @@ from comet.driver import Driver
 
 class Tango(Driver):
 
-    def __init__(self, resource):
+    def __init__(self, resource) -> None:
         self.resource = resource
 
     def identify(self) -> str:

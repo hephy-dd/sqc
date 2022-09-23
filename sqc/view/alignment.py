@@ -8,7 +8,7 @@ from PyQt5 import QtCore, QtWidgets
 
 from ..controller.needle import NeedleController
 from ..controller.table import TableController
-from ..core.geometry import Pad, NeedlesGeometry
+from ..core.geometry import Pad, Padfile, NeedlesGeometry
 from ..core.geometry import load as load_padfile
 from ..core.transformation import affine_transformation, transform
 from ..settings import Settings
@@ -19,6 +19,9 @@ from .cameraview import camera_registry
 __all__ = ["AlignmentDialog"]
 
 logger = logging.getLogger(__name__)
+
+
+Position = Tuple[float, float, float]
 
 
 class ReferenceItem(QtWidgets.QTreeWidgetItem):
@@ -34,6 +37,7 @@ class ReferenceItem(QtWidgets.QTreeWidgetItem):
         self.setText(1, format(pad.x))
         self.setText(2, format(pad.y))
         self.setText(3, format(pad.z))
+        self.setText(4, "")
         self.reset()
 
     def reset(self) -> None:
@@ -43,10 +47,10 @@ class ReferenceItem(QtWidgets.QTreeWidgetItem):
     def pad(self) -> Pad:
         return self.data(0, type(self).PadRole)
 
-    def position(self) -> tuple:
+    def position(self) -> Optional[Position]:
         return self.data(0, type(self).PositionRole)
 
-    def setPosition(self, position) -> None:
+    def setPosition(self, position: Position) -> None:
         self.setData(0, type(self).PositionRole, position)
         self.setText(4, format(position))
 
@@ -133,7 +137,7 @@ class AlignmentController:
                 return False
         return True
 
-    def assignPosition(self, item, position):
+    def assignPosition(self, item, position: Position):
         x, y, z = position
         if item in self.items:
             item.setPosition((x, y, z))
@@ -152,7 +156,7 @@ class AlignmentController:
                 return item
         return None
 
-    def position(self, item):
+    def position(self, item: ReferenceItem) -> Optional[Position]:
         """Return assigned position or position relative to other assigned item."""
         if item.position():
             return item.position()
@@ -178,7 +182,7 @@ class AlignmentController:
             logger.info("Calculated transformation: %s %s", T, V0)
             self._transform = partial(transform, T, V0)
 
-    def transform(self, position):
+    def transform(self, position: Position) -> Position:
         if not self._transform:
             raise RuntimeError("No transformation matrix assigned.")
         return self._transform(position)
@@ -420,7 +424,7 @@ class ControlWidget(QtWidgets.QTabWidget):
 
         self.optionsWidget.stepsChanged.connect(self.createStepButtons)
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.tableController.shutdown()
         self.needleController.shutdown()
 
@@ -472,10 +476,10 @@ class ControlWidget(QtWidgets.QTabWidget):
     def setZOffset(self, value: int) -> None:
         self.optionsWidget.setZOffset(value)
 
-    def padfile(self):
+    def padfile(self) -> Padfile:
         return self.property("padfile")
 
-    def setPadfile(self, padfile):
+    def setPadfile(self, padfile: Padfile) -> None:
         self.setProperty("padfile", padfile)
         self.alignmentTreeWidget.clear()
         if padfile is not None:

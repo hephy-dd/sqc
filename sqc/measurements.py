@@ -51,7 +51,7 @@ class BaseMeasurement(Measurement):
     hv_channels = Parameter([], type=list)
     lv_channels = Parameter([], type=list)
 
-    def apply_switching(self):
+    def apply_switching(self) -> None:
         station = self.context.station
         station.hv_switch_apply(self.hv_channels)
         station.lv_switch_apply(self.lv_channels)
@@ -68,7 +68,7 @@ class BaseMeasurement(Measurement):
         data.update(values)
         super().insert_data(data, sortkey)
 
-    def check_valid_range(self, minimum: float, maximum: float, value: float, unit: str):
+    def check_valid_range(self, minimum: float, maximum: float, value: float, unit: str) -> None:
         if minimum and value < minimum:
             raise AnalysisError(f"Value out of bounds: {format_metric(value, unit)}, [{format_metric(minimum, unit)}, {format_metric(maximum, unit)}]")
         if maximum and value > maximum:
