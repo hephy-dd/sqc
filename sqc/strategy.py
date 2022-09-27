@@ -9,7 +9,7 @@ from comet.estimate import Estimate
 from .core.geometry import NeedlesGeometry
 from .core.transformation import affine_transformation, transform
 from .core.measurement import measurement_registry
-from .core.utils import parse_strips
+from .core.utils import parse_strips, verify_position
 from .measurements import ComplianceError, AnalysisError
 from .settings import Settings
 from .context import AbortRequested, Statistics
@@ -32,6 +32,7 @@ class SequenceController:
 
     def initialize(self):
         self.context.set_message("Initialize...")
+        self.context.create_timestamp()  # new timestamp for measurement!
         self.context.set_progress(0, 0, 0)
         self.context.set_current_item(None)
         self.context.set_current_strip(None)
@@ -87,7 +88,11 @@ class SequenceController:
                 station.table_move_relative((0, 0, abs(z)))
 
             # station.table_safe_move_absolute(position)
-            assert [round(value) for value in position] == [round(value) for value in station.table_position()], "Failed to contact!"
+
+            # Verify table position
+            current_position = station.table_position()
+            if not verify_position(position, current_position, threshold=1.0):
+                raise RuntimeError(f"Table position mismatch, requested {position} but table returned {current_position}")
 
 
 class ContactHandler:

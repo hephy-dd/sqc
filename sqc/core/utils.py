@@ -11,6 +11,7 @@ __all__ = [
     "normalize_strip_expression",
     "parse_strip_expression",
     "parse_strips",
+    "verify_position",
 ]
 
 
@@ -68,3 +69,11 @@ def parse_strips(names: List[str], expression: str) -> List[str]:
     for start, end in parse_strip_expression(expression):
         unsorted_names.update(extract_slice(names, start, end))
     return sorted(unsorted_names, key=names.index)
+
+
+def verify_position(reference: Tuple[float, float, float], position: Tuple[float, float, float], threshold: float) -> bool:
+    """Return True if both coordinates match within given threshold for values."""
+    for a, b in zip(reference, position):
+        if abs(a - b) > abs(threshold):
+            return False
+    return True

@@ -7,7 +7,8 @@ from sqc.core.utils import (
     create_slices,
     normalize_strip_expression,
     parse_strip_expression,
-    parse_strips
+    parse_strips,
+    verify_position,
 )
 
 
@@ -66,3 +67,12 @@ class TestUtils:
             parse_strips(names, "P3-P1")
         with pytest.raises(ValueError):
             parse_strips(names, "P42")
+
+    def test_verify_position(self):
+        assert verify_position([1.0, 2.0, 3.0], [1.0, 2.0, 3.0], 0)
+        assert not verify_position([1.0, 2.0, 3.0], [1.0, 2.001, 3.0], 0)
+        assert verify_position([1.3, 2.4, 3.1], [1.3, 2.4, 3.1], 0.25)
+        assert verify_position([1.3, 2.4, 3.1], [1.4, 2.64, 2.95], 0.25)
+        assert verify_position([-1, -3, -4], [0, -4, -3.5], 1)
+        assert not verify_position([1.3, 2.4, 3.1], [1.7, 2.4, 3.1], 0.25)
+        assert not verify_position([1.3, 2.4, 3.1], [1.7, 2.4, 2.8], 0.25)
