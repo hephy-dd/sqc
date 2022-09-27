@@ -32,6 +32,7 @@ class SequenceController:
 
     def initialize(self):
         self.context.set_message("Initialize...")
+        self.context.create_timestamp()  # new timestamp for measurement!
         self.context.set_progress(0, 0, 0)
         self.context.set_current_item(None)
         self.context.set_current_strip(None)

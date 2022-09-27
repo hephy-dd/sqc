@@ -2,6 +2,7 @@
 
 import logging
 import threading
+import time
 from collections import Counter
 from typing import Any, Callable, Dict, List, Optional
 
@@ -86,6 +87,9 @@ class Context(QtCore.QObject):
     @property
     def station(self) -> Station:
         return self._station
+
+    def create_timestamp(self) -> None:
+        self._parameters["timestamp"] = time.time()
 
     def reset(self) -> None:
         self._current_strip = ""
