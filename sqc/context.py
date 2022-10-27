@@ -81,6 +81,7 @@ class Context(QtCore.QObject):
         self._statistics: Statistics = Statistics()
         self._suspend_event: threading.Event = threading.Event()
         self._abort_event: threading.Event = threading.Event()
+        self.environ_errors: int = 0
         # Signals
         station.bias_voltage_changed.add(self.bias_voltage_changed.emit)
 
@@ -95,6 +96,7 @@ class Context(QtCore.QObject):
         self._current_strip = ""
         self._suspend_event = threading.Event()
         self._abort_event = threading.Event()
+        self.environ_errors = 0
 
     def reset_data(self) -> None:
         self._data = {}

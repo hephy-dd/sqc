@@ -511,9 +511,10 @@ class MainWindow(QtWidgets.QMainWindow):
             QtWidgets.QMessageBox.warning(self, "Humidity", f"Box humidity not available.")
             return False
 
-        if humidity < minHumidity or humidity > maxHumidity:
-            QtWidgets.QMessageBox.warning(self, "Humidity", f"Box humidity out of range ({formatHumidity(humidity)}).")
-            return False
+        # Disabled, wait for humidity after door open/close in sequence
+        # if humidity < minHumidity or humidity > maxHumidity:
+        #     QtWidgets.QMessageBox.warning(self, "Humidity", f"Box humidity out of range ({formatHumidity(humidity)}).")
+        #     return False
 
         return True
 
@@ -568,7 +569,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def enterRunningState(self):
-        self.dashboardWidget.resetEnvironOutOfBounds()
         self.setLocked(True)
         self.newMeasurementAction.setEnabled(False)
         self.profilesAction.setEnabled(False)
