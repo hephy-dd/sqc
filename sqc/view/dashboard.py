@@ -62,8 +62,6 @@ class DashboardWidget(QtWidgets.QWidget):
         self.context.stripscan_progress_changed.connect(self.setStripscanProgress)
         self.context.stripscan_estimation_changed.connect(self.setStripscanEstimation)
 
-        self.environErrors: int = 0
-
         # Sensor name
 
         self.nameLabel = QtWidgets.QLabel("Sensor Name")
@@ -754,13 +752,10 @@ class DashboardWidget(QtWidgets.QWidget):
     # Environment
 
     def setEnvironOutOfBounds(self) -> None:
-        self.environErrors += 1
+        self.context.environ_errors += 1
 
     def wasEnvironOutOfBounds(self) -> bool:
-        return self.environErrors > 0
-
-    def resetEnvironOutOfBounds(self) -> None:
-        self.environErrors = 0
+        return self.context.environ_errors > 0
 
     def updateEnvironData(self) -> None:
         data = self.context.station.box_environment()

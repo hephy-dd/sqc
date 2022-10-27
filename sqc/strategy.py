@@ -38,6 +38,8 @@ class SequenceController:
         self.context.set_current_strip(None)
         self.context.set_stripscan_progress(0, 0)
 
+        self.wait_for_box_humidity()
+
         station = self.context.station
         station.open_resources()
         station.box_set_test_running(True)
@@ -60,6 +62,20 @@ class SequenceController:
         station.box_set_test_running(False)
 
         self.context.set_message("Done.")
+
+    def wait_for_box_humidity(self, interval: float = 10.0) -> None:
+        context = self.context
+        environ = context.station.environ
+        while not context.is_abort_requested:
+            data = environ.snapshot()
+            box_humidity = data.get("box_humidity")
+            humidity_threshold = context.parameters.get("maximum_humidity")  # can change while running
+            if box_humidity is not None:
+                if box_humidity < humidity_threshold:
+                    break
+            logger.info("Waiting for box humidity < %.1f %%rel ...", humidity_threshold)
+            context.snooze(interval)
+        context.environ_errors = 0  # reset error counter
 
     def safe_recover_table(self):
         if self.context.parameters.get("option_debug_no_table"):

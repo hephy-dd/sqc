@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.2.0] - 2022-10-27
+### Added
+- Wait until required humidity reached (#10).
+
 ## [0.1.4] - 2022-09-27
 ### Fixed
 - Missing assets when installed using pip (#8).
@@ -28,7 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Documentation of measurement configuration parameters.
 
-[Unreleased]: https://github.com/hephy-dd/sqc/compare/0.1.4...HEAD
+[Unreleased]: https://github.com/hephy-dd/sqc/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/hephy-dd/sqc/compare/0.1.4...0.2.0
 [0.1.4]: https://github.com/hephy-dd/sqc/compare/0.1.3...0.1.4
 [0.1.3]: https://github.com/hephy-dd/sqc/compare/0.1.2...0.1.3
 [0.1.2]: https://github.com/hephy-dd/sqc/compare/0.1.1...0.1.2
