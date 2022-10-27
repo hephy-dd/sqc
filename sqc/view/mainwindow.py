@@ -337,7 +337,11 @@ class MainWindow(QtWidgets.QMainWindow):
         # if dialog.result() == dialog.Accepted:
         #     self.dashboardWidget.setOutputPath(dialog.outputPath())
         #     self.dashboardWidget.setOperatorName(dialog.operatorName())
-        result = QtWidgets.QMessageBox.question(self, "New Measurement", "Do you want to prepare a new measurement?")
+        result = QtWidgets.QMessageBox.question(
+            self,
+            "New Measurement",
+            "Do you want to prepare a new measurement?\n\nThis will clear all plots and restore default sequence configuration."
+        )
         if result == QtWidgets.QMessageBox.Yes:
             self.context.reset()
             self.context.reset_data()
