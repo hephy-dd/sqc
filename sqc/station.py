@@ -34,23 +34,15 @@ def iter_errors(instr) -> Generator[Any, None, None]:
         yield error
 
 
-def wait_movement_finished(position, timeout=60.0, interval=0.100):
-    """Block until callback function `position` return identical values twice.
-
-    This function can be used to detect if an asyncronuous movement finshed in
-    case the instrument is not able to provide a proper state.
-    """
+def wait_until(callback, timeout=60.0, interval=0.250) -> None:
+    """Block until callback function return `True`."""
     t = Timer()
-    pos = [position()]
     while True:
         if t.delta() > timeout:
             raise TimeoutError()
         time.sleep(interval)
-        pos.append(position())
-        # if position not changed movement has finished
-        if pos[0] == pos[1]:
+        if callback():
             break
-        pos.pop(0)
 
 
 class Station:
@@ -698,24 +690,46 @@ class Station:
         tango = self.get_resource("tango")
         return tango.pos_x
 
-    def needles_up(self) -> None:
+    def needles_verify_position(self, position: float, decimals: int = 3) -> None:
         tango = self.get_resource("tango")
+        pos_x = tango.pos_x
+        if round(pos_x, decimals) != round(position, decimals):
+            raise RuntimeError(f"Needle position mismatch: {pos_x} != {position}")
+
+    def needles_verify_calibration(self) -> None:
+        tango = self.get_resource("tango")
+        calst_x = tango.calst_x
+        if calst_x != 3:
+            raise RuntimeError(f"Needle calibration error ({calst_x})")
+
+    def needles_move_absolute(self, position: float) -> None:
+        tango = self.get_resource("tango")
+        tango.moa_x(position)
+
+    def needles_up(self) -> None:
         logger.info("Moving needles up...")
-        tango.moa_x(type(self).needles_up_position)
+        tango = self.get_resource("tango")
+        position = type(self).needles_up_position
+        self.needles_verify_calibration()
+        self.needles_move_absolute(position)
         self.needles_wait_movement_finished()
+        self.needles_verify_position(position)
         logger.info("Moving needles up... done.")
 
     def needles_down(self) -> None:
-        tango = self.get_resource("tango")
         logger.info("Moving needles down...")
-        tango.moa_x(type(self).needles_down_position)
+        tango = self.get_resource("tango")
+        position = type(self).needles_down_position
+        self.needles_verify_calibration()
+        self.needles_move_absolute(position)
         self.needles_wait_movement_finished()
+        self.needles_verify_position(position)
         logger.info("Moving needles down... done.")
 
     def needles_wait_movement_finished(self) -> None:
         tango = self.get_resource("tango")
         try:
-            wait_movement_finished(lambda: tango.pos_x)
+            wait_until(lambda: tango.statusaxis_x != "M")
         except TimeoutError as exc:
             raise TimeoutError("Needle movement timeout.") from exc
 

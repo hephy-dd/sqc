@@ -50,6 +50,7 @@ class NeedleController(QtCore.QObject):
             ...
         else:
             request()
+            request.get()  # raise exceptions
 
     def shutdown(self) -> None:
         self._shutdown.set()
