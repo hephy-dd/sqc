@@ -1,7 +1,7 @@
 import logging
 import statistics
 import time
-from typing import Any, Callable, Dict, Generator, Iterable, Tuple
+from typing import Any, Callable, Dict, Generator, Iterable, Tuple, Optional
 
 from comet.filters import std_mean_filter
 from comet.functions import LinearRange
@@ -370,8 +370,8 @@ class Station:
             self.smu_set_voltage(0)
 
     def smu_ramp_voltage(self, voltage_end: float, *, voltage_step: float = 10.0,
-                         waiting_time: float = 0.25, before_step: Callable = None,
-                         after_step: Callable = None) -> None:
+                         waiting_time: float = 0.25, before_step: Optional[Callable] = None,
+                         after_step: Optional[Callable] = None) -> None:
         """Ramp voltage to `voltage_end` in `voltage_step`s providing callbacks
         to be executed for every step before and after applying the next voltage
         step."""
@@ -509,8 +509,8 @@ class Station:
             self.bias_set_voltage(0)
 
     def bias_ramp_voltage(self, voltage_end: float, *, voltage_step: float = 10.0,
-                          waiting_time: float = 0.25, before_step: Callable = None,
-                          after_step: Callable = None) -> None:
+                          waiting_time: float = 0.25, before_step: Optional[Callable] = None,
+                          after_step: Optional[Callable] = None) -> None:
         """Ramp voltage to `voltage_end` in `voltage_step`s providing callbacks
         to be executed for every step before and after applying the next voltage
         step."""
@@ -683,32 +683,36 @@ class Station:
 
     # Needles
 
+    needles_axis: int = 0
     needles_up_position: float = 1000.
     needles_down_position: float = 0.
 
-    def needles_position(self) -> None:
-        tango = self.get_resource("tango")
-        return tango.pos_x
-
     def needles_verify_position(self, position: float, decimals: int = 3) -> None:
         tango = self.get_resource("tango")
-        pos_x = tango.pos_x
+        pos_x = tango[type(self).needles_axis].position
         if round(pos_x, decimals) != round(position, decimals):
             raise RuntimeError(f"Needle position mismatch: {pos_x} != {position}")
 
     def needles_verify_calibration(self) -> None:
         tango = self.get_resource("tango")
-        calst_x = tango.calst_x
-        if calst_x != 3:
-            raise RuntimeError(f"Needle calibration error ({calst_x})")
+        if not tango[type(self).needles_axis].is_calibrated:
+            raise RuntimeError(f"Needle axis requires calibration.")
 
     def needles_move_absolute(self, position: float) -> None:
         tango = self.get_resource("tango")
-        tango.moa_x(position)
+        tango[type(self).needles_axis].move_absolute(position)
+
+    def needles_wait_movement_finished(self) -> None:
+        tango = self.get_resource("tango")
+        def condition():
+            return not tango.is_moving
+        try:
+            wait_until(condition)
+        except TimeoutError as exc:
+            raise TimeoutError("Needle movement timeout.") from exc
 
     def needles_up(self) -> None:
         logger.info("Moving needles up...")
-        tango = self.get_resource("tango")
         position = type(self).needles_up_position
         self.needles_verify_calibration()
         self.needles_move_absolute(position)
@@ -718,20 +722,12 @@ class Station:
 
     def needles_down(self) -> None:
         logger.info("Moving needles down...")
-        tango = self.get_resource("tango")
         position = type(self).needles_down_position
         self.needles_verify_calibration()
         self.needles_move_absolute(position)
         self.needles_wait_movement_finished()
         self.needles_verify_position(position)
         logger.info("Moving needles down... done.")
-
-    def needles_wait_movement_finished(self) -> None:
-        tango = self.get_resource("tango")
-        try:
-            wait_until(lambda: tango.statusaxis_x != "M")
-        except TimeoutError as exc:
-            raise TimeoutError("Needle movement timeout.") from exc
 
 
 class CapacitorDischarge:

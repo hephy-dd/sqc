@@ -1,4 +1,4 @@
-from typing import Iterable
+from typing import Iterable, Optional
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -7,7 +7,7 @@ __all__ = ["CreateMeasurementDialog"]
 
 class CreateMeasurementDialog(QtWidgets.QDialog):
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
         self.setWindowTitle("New Measurement")

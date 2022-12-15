@@ -21,7 +21,7 @@ class PlotAreaWidget(QtWidgets.QWidget):
 
     LayoutColumns = 3
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
         self._groups: List[PlotWidget] = []

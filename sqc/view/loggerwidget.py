@@ -1,7 +1,7 @@
 import logging
 import threading
 import os
-from typing import Callable, Iterable, List
+from typing import Callable, Iterable, List, Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -26,7 +26,7 @@ class LoggerWidget(QtWidgets.QTextEdit):
     received = QtCore.pyqtSignal(logging.LogRecord)
     """Received is emitted when a new log record is appended by a logger."""
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.setReadOnly(True)
         self.document().setMaximumBlockCount(type(self).MaximumEntries)
@@ -135,7 +135,7 @@ class RecordsQueue:
 
 class QueuedLoggerWidget(LoggerWidget):
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
         self.recordsQueue = RecordsQueue()

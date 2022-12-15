@@ -1,7 +1,7 @@
 import logging
 import random
 from functools import partial
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple, Optional
 
 from comet.utils import ureg
 from PyQt5 import QtCore, QtWidgets
@@ -59,7 +59,7 @@ class SelectPadDialog(QtWidgets.QDialog):
 
     PadRole: int = 0x2000
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Select Pad")
 
@@ -192,7 +192,7 @@ class ControlWidget(QtWidgets.QTabWidget):
 
     lockedStateChanged = QtCore.pyqtSignal(bool)
 
-    def __init__(self, context, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, context, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
         self.setCurrentPosition((0, 0, 0))
@@ -773,7 +773,7 @@ class OptionsWidget(QtWidgets.QWidget):
 
     stepsChanged = QtCore.pyqtSignal()
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
         # Step width
@@ -919,7 +919,7 @@ class OptionsWidget(QtWidgets.QWidget):
 
 class AlignmentDialog(QtWidgets.QDialog):
 
-    def __init__(self, context, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, context, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Alignment")
 

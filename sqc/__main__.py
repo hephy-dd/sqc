@@ -4,7 +4,7 @@ import os
 import sys
 from logging import Formatter, StreamHandler
 from logging.handlers import RotatingFileHandler
-from typing import List, Type
+from typing import List, Type, Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -13,13 +13,13 @@ from comet.driver.corvus import Venus1
 from comet.driver.hephy import BrandBox, EnvironBox
 from comet.driver.keithley import K708B, K2410, K2657A, K6514, K6517B
 from comet.driver.keysight import E4980A
+from comet.driver.marzhauser import Tango
 
 from . import __version__
 from .context import Context
 from .station import Station
 
 from .core.resource import driver_registry
-from .core.tango import Tango
 
 from .view.mainwindow import MainWindow
 
@@ -91,7 +91,7 @@ def add_rotating_file_handle(logger: logging.Logger, filename: str) -> None:
     logger.addHandler(file_handler)
 
 
-def configure_logger(logger: logging.Logger, debug: bool = False, filename: str = None) -> None:
+def configure_logger(logger: logging.Logger, debug: bool = False, filename: Optional[str] = None) -> None:
     level = logging.DEBUG if debug else logging.INFO
     logger.setLevel(level)
 

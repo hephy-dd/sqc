@@ -1,5 +1,5 @@
 import logging
-from typing import Dict
+from typing import Dict, Optional
 
 from PyQt5 import QtChart, QtCore, QtGui, QtWidgets
 
@@ -271,7 +271,7 @@ class PlotWidget(QtWidgets.QWidget):
 
     xRangeChanged = QtCore.pyqtSignal(float, float)
 
-    def __init__(self, title: str, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, title: str, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
         self._chart = QtChart.QChart()
@@ -385,7 +385,7 @@ class PlotWidget(QtWidgets.QWidget):
 
 class IVPlotWidget(PlotWidget):
 
-    def __init__(self, title: str, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, title: str, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(title, parent)
 
         self._xAxis.setTitleText("Voltage")
@@ -406,7 +406,7 @@ class IVPlotWidget(PlotWidget):
 
 class CVPlotWidget(PlotWidget):
 
-    def __init__(self, title: str, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, title: str, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(title, parent)
 
         # Fix stretch of bottom axis
@@ -430,7 +430,7 @@ class CVPlotWidget(PlotWidget):
 
 class CV2PlotWidget(PlotWidget):
 
-    def __init__(self, title: str, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, title: str, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(title, parent)
 
         # Fix stretch of bottom axis
@@ -450,7 +450,7 @@ class CV2PlotWidget(PlotWidget):
 
 class StripPlotWidget(PlotWidget):
 
-    def __init__(self, title: str, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, title: str, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(title, parent)
 
         self._strips: dict = {}
@@ -497,7 +497,7 @@ class StripPlotWidget(PlotWidget):
 
 class IStripPlotWidget(StripPlotWidget):
 
-    def __init__(self, title: str, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, title: str, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(title, parent)
 
         self._yAxis.setRange(0, .001)
@@ -515,7 +515,7 @@ class IStripPlotWidget(StripPlotWidget):
 
 class RStripPlotWidget(StripPlotWidget):
 
-    def __init__(self, title: str, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, title: str, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(title, parent)
 
         self._iDynamicAxis = DynamicValueAxis(self._yAxis)
@@ -530,7 +530,7 @@ class RStripPlotWidget(StripPlotWidget):
 
 class CStripPlotWidget(StripPlotWidget):
 
-    def __init__(self, title: str, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, title: str, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(title, parent)
 
         # TODO
@@ -563,7 +563,7 @@ class CStripPlotWidget(StripPlotWidget):
 class RecontactPlotWidget(StripPlotWidget):
     """Histogram of recontacts and remeasurements."""
 
-    def __init__(self, title: str, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, title: str, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(title, parent)
 
         self._yAxis.setTitleText("Times")
@@ -617,7 +617,7 @@ class RecontactPlotWidget(StripPlotWidget):
 
 class EnvironPlotWidget(PlotWidget):
 
-    def __init__(self, title: str, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, title: str, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(title, parent)
 
         x = QtChart.QValueAxis()

@@ -3,7 +3,7 @@ import traceback
 import os
 import webbrowser
 from pathlib import Path
-from typing import List
+from typing import List, Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -118,6 +118,10 @@ class MainWindow(QtWidgets.QMainWindow):
         self.boxLightAction.setVisible(False)  # TODO
         self.boxLightAction.toggled.connect(self.toggleBoxLight)
 
+        self.identifyAction = QtWidgets.QAction("Idenify Instruments")
+        self.identifyAction.setStatusTip("Identify Instruments")
+        self.identifyAction.triggered.connect(self.showIdentify)
+
         self.contentsAction = QtWidgets.QAction("&Contents")
         self.contentsAction.setShortcut(QtGui.QKeySequence("F1"))
         self.contentsAction.triggered.connect(self.showContents)
@@ -153,6 +157,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.toolsMenu = self.menuBar().addMenu("&Tools")
         self.toolsMenu.addAction(self.recoverAction)
         self.toolsMenu.addAction(self.boxLightAction)
+        self.toolsMenu.addAction(self.identifyAction)
 
         self.helpMenu = self.menuBar().addMenu("&Help")
         self.helpMenu.addAction(self.contentsAction)
@@ -421,6 +426,15 @@ class MainWindow(QtWidgets.QMainWindow):
     def showRecoverStation(self) -> None:
         dialog = RecoverDialog(self.context)
         dialog.run()
+
+    def showIdentify(self) -> None:
+        try:
+            station = self.context.station
+            station.open_resources()
+            station.check_identities()
+            station.close_resources()
+        except Exception as exc:
+            logger.exception(exc)
 
     def toggleBoxLight(self, state) -> None:
         try:
