@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.3.0] - 2022-12-15
 ### Added
 - Display AC needles position.
+- Calibration routines for table and needles (#12).
 
 ### Changed
 - Migrated to comet-1.0.dev2.
@@ -45,7 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Documentation of measurement configuration parameters.
 
-[Unreleased]: https://github.com/hephy-dd/sqc/compare/0.2.1...HEAD
+[Unreleased]: https://github.com/hephy-dd/sqc/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/hephy-dd/sqc/compare/0.2.1...0.3.0
 [0.2.1]: https://github.com/hephy-dd/sqc/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/hephy-dd/sqc/compare/0.1.4...0.2.0
 [0.1.4]: https://github.com/hephy-dd/sqc/compare/0.1.3...0.1.4

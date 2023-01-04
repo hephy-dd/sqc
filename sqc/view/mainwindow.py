@@ -118,9 +118,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.boxLightAction.setVisible(False)  # TODO
         self.boxLightAction.toggled.connect(self.toggleBoxLight)
 
-        self.identifyAction = QtWidgets.QAction("Idenify Instruments")
+        self.identifyAction = QtWidgets.QAction("Identify Instruments")
         self.identifyAction.setStatusTip("Identify Instruments")
+        self.identifyAction.setVisible(False)
         self.identifyAction.triggered.connect(self.showIdentify)
+
 
         self.contentsAction = QtWidgets.QAction("&Contents")
         self.contentsAction.setShortcut(QtGui.QKeySequence("F1"))

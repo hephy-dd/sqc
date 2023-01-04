@@ -13,6 +13,7 @@ from ..core.geometry import load as load_padfile
 from ..core.transformation import affine_transformation, transform
 from ..settings import Settings
 
+from .calibration import TableCalibrationDialog, NeedlesCalibrationDialog, TextDialog
 from .cameraview import CameraScene, CameraView
 from .cameraview import camera_registry
 
@@ -932,6 +933,36 @@ class AlignmentDialog(QtWidgets.QDialog):
 
         self.cameraController = None
 
+        self.closeAction = QtWidgets.QAction(self)
+        self.closeAction.setText("&Close")
+        self.closeAction.triggered.connect(self.close)
+
+        self.calibrateTableAction = QtWidgets.QAction(self)
+        self.calibrateTableAction.setText("Calibrate...")
+        self.calibrateTableAction.triggered.connect(self.calibrateTable)
+
+        self.calibrateNeedlesAction = QtWidgets.QAction(self)
+        self.calibrateNeedlesAction.setText("Calibrate...")
+        self.calibrateNeedlesAction.triggered.connect(self.calibrateNeedles)
+
+        self.diagnoseNeedlesAction = QtWidgets.QAction(self)
+        self.diagnoseNeedlesAction.setText("Diagnose...")
+        self.diagnoseNeedlesAction.triggered.connect(self.diagnoseNeedles)
+
+        self.menuBar = QtWidgets.QMenuBar(self)
+
+        self.fileMenu = self.menuBar.addMenu("&File")
+        self.fileMenu.addAction(self.closeAction)
+
+        self.toolsMenu = self.menuBar.addMenu("&Tools")
+
+        self.tableMenu = self.toolsMenu.addMenu("&Table (Corvus)")
+        self.tableMenu.addAction(self.calibrateTableAction)
+
+        self.needlesMenu = self.toolsMenu.addMenu("&Needles (TANGO)")
+        self.needlesMenu.addAction(self.calibrateNeedlesAction)
+        self.needlesMenu.addAction(self.diagnoseNeedlesAction)
+
         self.exposureSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
         self.exposureSlider.setMaximumWidth(128)
         self.exposureSlider.setRange(0, 250)
@@ -987,15 +1018,22 @@ class AlignmentDialog(QtWidgets.QDialog):
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
 
+        self.contentWidget = QtWidgets.QWidget(self)
+
+        contentLayout = QtWidgets.QVBoxLayout(self.contentWidget)
+        contentLayout.addWidget(self.cameraView)
+        contentLayout.addWidget(self.zoomToolBar)
+        contentLayout.addWidget(self.controlWidget)
+        contentLayout.addWidget(self.buttonBox)
+        contentLayout.setStretch(0, 1)
+        contentLayout.setStretch(1, 0)
+        contentLayout.setStretch(2, 0)
+        contentLayout.setStretch(3, 0)
+
         layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.cameraView)
-        layout.addWidget(self.zoomToolBar)
-        layout.addWidget(self.controlWidget)
-        layout.addWidget(self.buttonBox)
-        layout.setStretch(0, 1)
-        layout.setStretch(1, 0)
-        layout.setStretch(2, 0)
-        layout.setStretch(3, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.menuBar)
+        layout.addWidget(self.contentWidget)
 
         self.accepted.connect(self.stopCamera)
         self.rejected.connect(self.stopCamera)
@@ -1117,6 +1155,21 @@ class AlignmentDialog(QtWidgets.QDialog):
     def stopCamera(self):
         if self.cameraController:
             self.cameraController.stop()
+
+    def calibrateTable(self) -> None:
+        dialog = TableCalibrationDialog(self.controlWidget.tableController, self)
+        dialog.exec()
+
+    def calibrateNeedles(self) -> None:
+        dialog = NeedlesCalibrationDialog(self.controlWidget.needleController, self)
+        dialog.exec()
+
+    def diagnoseNeedles(self) -> None:
+        text = self.controlWidget.needleController.diagnose()
+        dialog = TextDialog(self)
+        dialog.setWindowTitle("TANGO diagnosis")
+        dialog.setText(text)
+        dialog.exec()
 
     def shutdown(self):
         self.controlWidget.shutdown()
