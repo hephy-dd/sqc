@@ -21,7 +21,7 @@ from .recover import RecoverDialog
 __all__ = ["MainWindow"]
 
 APP_TITLE = "SQC"
-APP_COPY = "Copyright &copy; 2022 HEPHY"
+APP_COPY = "Copyright &copy; 2022-2023 HEPHY"
 APP_LICENSE = "This software is licensed under the GNU General Public License v3.0"
 APP_DECRIPTION = """Sensor Quality Control (SQC) characterises a sample of
 sensors from each batch delivered by the producer and ensures that they

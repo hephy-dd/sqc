@@ -6,7 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.3.0] - 2022-12-15
+## [0.3.1] - 2023-01-09
+### Added
+- Improve table movements over distances (#14).
+
+### Removed
+- Dump TANGO diagnostics.
+
+## [0.3.0] - 2023-01-09
 ### Added
 - Display AC needles position.
 - Calibration routines for table and needles (#12).
@@ -46,7 +53,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Documentation of measurement configuration parameters.
 
-[Unreleased]: https://github.com/hephy-dd/sqc/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/hephy-dd/sqc/compare/0.3.1...HEAD
+[0.3.1]: https://github.com/hephy-dd/sqc/compare/0.3.0...0.3.1
 [0.3.0]: https://github.com/hephy-dd/sqc/compare/0.2.1...0.3.0
 [0.2.1]: https://github.com/hephy-dd/sqc/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/hephy-dd/sqc/compare/0.1.4...0.2.0

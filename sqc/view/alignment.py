@@ -13,7 +13,7 @@ from ..core.geometry import load as load_padfile
 from ..core.transformation import affine_transformation, transform
 from ..settings import Settings
 
-from .calibration import TableCalibrationDialog, NeedlesCalibrationDialog, NeedlesDiagnoseDialog
+from .calibration import TableCalibrationDialog, NeedlesCalibrationDialog
 from .cameraview import CameraScene, CameraView
 from .cameraview import camera_registry
 
@@ -551,17 +551,16 @@ class ControlWidget(QtWidgets.QTabWidget):
 
     def moveMeasurePosition(self):
         try:
-            position = Settings().measurePosition()
-            self.moveAbsolute(position)
+            x, y, z = Settings().measurePosition()
+            self.travelAbsolute((x, y, z))
         except Exception as exc:
             logger.exception(exc)
             self.showException(exc)
 
     def moveLoadPosition(self):
         try:
-            self.moveRelative((0, 0, -9999))  # TODO
-            position = Settings().loadPosition()
-            self.moveAbsolute(position)
+            x, y, z = Settings().loadPosition()
+            self.travelAbsolute((x, y, z))
         except Exception as exc:
             logger.exception(exc)
             self.showException(exc)
@@ -591,6 +590,11 @@ class ControlWidget(QtWidgets.QTabWidget):
     def moveAbsolute(self, position):
         self.setLocked(True)
         self.tableController.moveAbsolute(position)
+
+    def travelAbsolute(self, position):
+        """Travel wide distances at Z=0"""
+        self.setLocked(True)
+        self.tableController.travelAbsolute(position)
 
     def requestPosition(self):
         self.tableController.requestPosition()
@@ -982,10 +986,6 @@ class AlignmentDialog(QtWidgets.QDialog):
         self.calibrateNeedlesAction.setText("Calibrate...")
         self.calibrateNeedlesAction.triggered.connect(self.calibrateNeedles)
 
-        self.diagnoseNeedlesAction = QtWidgets.QAction(self)
-        self.diagnoseNeedlesAction.setText("Diagnose")
-        self.diagnoseNeedlesAction.triggered.connect(self.diagnoseNeedles)
-
         self.menuBar = QtWidgets.QMenuBar(self)
 
         self.fileMenu = self.menuBar.addMenu("&File")
@@ -998,7 +998,6 @@ class AlignmentDialog(QtWidgets.QDialog):
 
         self.needlesMenu = self.toolsMenu.addMenu("&Needles (TANGO)")
         self.needlesMenu.addAction(self.calibrateNeedlesAction)
-        self.needlesMenu.addAction(self.diagnoseNeedlesAction)
 
         self.exposureSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
         self.exposureSlider.setMaximumWidth(128)
@@ -1199,11 +1198,6 @@ class AlignmentDialog(QtWidgets.QDialog):
 
     def calibrateNeedles(self) -> None:
         dialog = NeedlesCalibrationDialog(self.controlWidget.needleController, self)
-        dialog.exec()
-
-    def diagnoseNeedles(self) -> None:
-        dialog = NeedlesDiagnoseDialog(self.controlWidget.needleController, self)
-        dialog.diagnose()
         dialog.exec()
 
     def shutdown(self):

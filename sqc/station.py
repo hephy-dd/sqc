@@ -691,20 +691,24 @@ class Station:
         tango = self.get_resource("tango")
         pos_x = tango[type(self).needles_axis].position
         if round(pos_x, decimals) != round(position, decimals):
-            raise RuntimeError(f"Needle position mismatch: {pos_x} != {position}")
+            raise RuntimeError(f"TANGO position mismatch: {pos_x} != {position}")
 
     def needles_verify_calibration(self) -> None:
         tango = self.get_resource("tango")
         if not tango[type(self).needles_axis].is_calibrated:
-            raise RuntimeError(f"Needle axis requires calibration.")
+            raise RuntimeError(f"TANGO axis requires calibration.")
 
     def needles_calibrate(self) -> None:
+        logger.info("Calibrate TANGO...")
         tango = self.get_resource("tango")
         tango[type(self).needles_axis].calibrate()
+        logger.info("Calibrate TANGO... done.")
 
     def needles_range_measure(self) -> None:
+        logger.info("Range measure TANGO...")
         tango = self.get_resource("tango")
         tango[type(self).needles_axis].range_measure()
+        logger.info("Range measure TANGO... done.")
 
     def needles_move_absolute(self, position: float) -> None:
         tango = self.get_resource("tango")
@@ -736,10 +740,6 @@ class Station:
         self.needles_wait_movement_finished()
         self.needles_verify_position(position)
         logger.info("Moving needles down... done.")
-
-    def needles_diagnose(self) -> str:
-        tango = self.get_resource("tango")
-        return tango.resource.query("service")  # TODO
 
 
 class CapacitorDischarge:
