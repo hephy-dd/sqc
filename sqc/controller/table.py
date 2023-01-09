@@ -22,7 +22,6 @@ class Table:  # TODO
 
     def __init__(self, driver) -> None:
         self.driver = driver
-        self.poll_timeout: float = 60.
         self.poll_interval: float = .100
         self.safe_z_offset: float = 250.
 
@@ -40,11 +39,15 @@ class Table:  # TODO
         return self.driver.pos
 
     def move_relative(self, position, position_changed: Optional[Callable] = None) -> None:
+        if not self.is_calibrated():
+            raise RuntimeError("Table requires calibration.")
         x, y, z = position
         self.driver.rmove(x, y, z)  # non blocking
         self.wait_movement_finished(position_changed)
 
     def safe_move_absolute(self, position, position_changed: Optional[Callable] = None) -> None:
+        if not self.is_calibrated():
+            raise RuntimeError("Table requires calibration.")
         x, y, z = position
         pos = self.driver.pos
         self.driver.rmove(0, 0, -abs(self.safe_z_offset))  # non blocking
@@ -56,20 +59,27 @@ class Table:  # TODO
         self.driver.rmove(0, 0, z - abs(pos[2]))  # non blocking
         self.wait_movement_finished(position_changed)
 
+    def safe_travel_absolute(self, position, position_changed: Optional[Callable] = None) -> None:
+        if not self.is_calibrated():
+            raise RuntimeError("Table requires calibration.")
+        x, y, z = position
+        pos = self.driver.pos
+        self.driver.rmove(0, 0, -abs(pos[2]))  # non blocking
+        self.wait_movement_finished(position_changed)
+        self.driver.move(x, y, 0)  # non blocking
+        self.wait_movement_finished(position_changed)
+        self.driver.move(x, y, z)  # non blocking
+        self.wait_movement_finished(position_changed)
+
     def wait_movement_finished(self, position_changed: Optional[Callable] = None) -> None:
-        t = Timer()
-        pos = [self.driver.pos]
         while True:
-            if t.delta() > self.poll_timeout:
-                raise RuntimeError("Table movement timeout.")
+            pos = self.driver.pos
             time.sleep(self.poll_interval)
-            pos.append(self.driver.pos)
             if callable(position_changed):
-                position_changed(pos[-1])
-            # if position not changed movement has finished
-            if pos[0] == pos[1]:
+                position_changed(pos)
+            moving = self.driver.status & 0x1 == 0x1
+            if not moving:
                 break
-            pos.pop(0)
 
     def set_joystick_enabled(self, enabled: bool) -> None:
         self.driver.joystick = enabled
@@ -85,21 +95,27 @@ class Table:  # TODO
 
     def calibrate_x(self) -> None:
         self.driver.x.ncal()
+        self.wait_movement_finished()
 
     def calibrate_y(self) -> None:
         self.driver.y.ncal()
+        self.wait_movement_finished()
 
     def calibrate_z(self) -> None:
         self.driver.z.ncal()
+        self.wait_movement_finished()
 
     def range_measure_x(self) -> None:
         self.driver.x.nrm()
+        self.wait_movement_finished()
 
     def range_measure_y(self) -> None:
         self.driver.y.nrm()
+        self.wait_movement_finished()
 
     def range_measure_z(self) -> None:
         self.driver.z.nrm()
+        self.wait_movement_finished()
 
 
 class TableController(QtCore.QObject):
@@ -177,6 +193,14 @@ class TableController(QtCore.QObject):
         def request(context):
             try:
                 context.safe_move_absolute(position, position_changed=self.positionChanged.emit)
+            finally:
+                self.movementFinished.emit()
+        self._queue.put(Request(request))
+
+    def travelAbsolute(self, position) -> None:
+        def request(context):
+            try:
+                context.safe_travel_absolute(position, position_changed=self.positionChanged.emit)
             finally:
                 self.movementFinished.emit()
         self._queue.put(Request(request))

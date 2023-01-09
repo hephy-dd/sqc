@@ -7,7 +7,7 @@ from comet.utils import ureg
 from PyQt5 import QtCore, QtWidgets
 
 
-__all__ = ["TableCalibrationDialog", "NeedlesCalibrationDialog", "NeedlesDiagnoseDialog"]
+__all__ = ["TableCalibrationDialog", "NeedlesCalibrationDialog"]
 
 logger = logging.getLogger(__name__)
 
@@ -121,7 +121,7 @@ class TableCalibrationDialog(CalibrationDialog):
 
         self.setWindowTitle("Calibrate Corvus")
 
-        self.addTask("Microscope moved to back")
+        self.addTask("Microscope moved up/to back")
         self.addTask("Positioners moved up (Z-screw)")
         self.addTask("Positioners moved away from table")
 
@@ -144,6 +144,7 @@ class NeedlesCalibrationDialog(CalibrationDialog):
 
         self.setWindowTitle(f"Calibrate TANGO")
 
+        self.addTask("Microscope moved up/to back")
         self.addTask("Positioners moved up (Z-screw)")
         self.addTask("Positioners moved away from table")
 
@@ -181,25 +182,3 @@ class TextDialog(QtWidgets.QDialog):
 
     def setText(self, text: str) -> None:
         self.textEdit.setPlainText(text)
-
-
-class NeedlesDiagnoseDialog(TextDialog):
-
-    def __init__(self, controller, parent: Optional[QtWidgets.QWidget] = None) -> None:
-        super().__init__(parent)
-
-        self.setWindowTitle("TANGO diagnosis")
-        self.setEnabled(False)
-
-        self.controller = controller
-
-    def diagnose(self) -> None:
-        try:
-            text = self.controller.diagnose()
-        except Exception as exc:
-            logger.exception(exc)
-            QtWidgets.QMessageBox.critical(self, "Exception occured", format(exc))
-        else:
-            self.setText(text)
-        finally:
-            self.setEnabled(True)

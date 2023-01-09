@@ -87,9 +87,11 @@ class NeedleController(QtCore.QObject):
             if not self.abortRequested:
                 self.progressChanged.emit(0, 4)
                 self.station.needles_calibrate()
+                self.station.needles_wait_movement_finished()
             if not self.abortRequested:
                 self.progressChanged.emit(1, 4)
                 self.station.needles_range_measure()
+                self.station.needles_wait_movement_finished()
             if not self.abortRequested:
                 self.progressChanged.emit(2, 4)
                 self.station.needles_verify_calibration()
@@ -100,6 +102,3 @@ class NeedleController(QtCore.QObject):
         finally:
             self.abortRequested = False
             self.movementFinished.emit()
-
-    def diagnose(self) -> str:
-        return self.station.needles_diagnose()
