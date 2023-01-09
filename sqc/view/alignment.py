@@ -13,7 +13,7 @@ from ..core.geometry import load as load_padfile
 from ..core.transformation import affine_transformation, transform
 from ..settings import Settings
 
-from .calibration import TableCalibrationDialog, NeedlesCalibrationDialog, TextDialog
+from .calibration import TableCalibrationDialog, NeedlesCalibrationDialog, NeedlesDiagnoseDialog
 from .cameraview import CameraScene, CameraView
 from .cameraview import camera_registry
 
@@ -205,6 +205,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.tableController.start()
 
         self.needleController = NeedleController(context.station)
+        # self.needleController.positionChanged.connect(self.updateNeedlesPosition)
         self.needleController.movementFinished.connect(self.finishMove)
         self.needleController.failed.connect(self.showException)
         self.needleController.start()
@@ -403,6 +404,32 @@ class ControlWidget(QtWidgets.QTabWidget):
         tableLayout.addRow("Y", self.tableYLabel)
         tableLayout.addRow("Z", self.tableZLabel)
 
+        # self.tableCalibrationGroupBox = QtWidgets.QGroupBox(self)
+        # self.tableCalibrationGroupBox.setTitle("Table Calibration")
+
+        # tableCalibrationLayout = QtWidgets.QFormLayout(self.tableCalibrationGroupBox)
+
+        # self.needlesPositionGroupBox = QtWidgets.QGroupBox(self)
+        # self.needlesPositionGroupBox.setTitle("TANGO Position")
+
+        # self.needlesXLabel = QtWidgets.QLabel(self)
+        # self.needlesXLabel.setAlignment(QtCore.Qt.AlignRight)
+
+        # needlesLayout = QtWidgets.QFormLayout(self.needlesPositionGroupBox)
+        # needlesLayout.addRow("X", self.needlesXLabel)
+
+        # self.needlesCalibrationGroupBox = QtWidgets.QGroupBox(self)
+        # self.needlesCalibrationGroupBox.setTitle("TANGO Calibration")
+
+        # needlesCalibrationLayout = QtWidgets.QFormLayout(self.needlesCalibrationGroupBox)
+
+        rightLayout = QtWidgets.QVBoxLayout()
+        rightLayout.addWidget(self.tableGroupBox)
+        # rightLayout.addWidget(self.tableCalibrationGroupBox)
+        # rightLayout.addWidget(self.needlesPositionGroupBox)
+        # rightLayout.addWidget(self.needlesCalibrationGroupBox)
+        # rightLayout.setStretch(3, 1)
+
         leftCommandsLayout = QtWidgets.QVBoxLayout()
         leftCommandsLayout.addWidget(self.commandsGroupBox)
         leftCommandsLayout.addWidget(self.needlesGroupBox)
@@ -415,7 +442,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         controlLayout.addWidget(self.dialGroupBox)
         controlLayout.addWidget(self.stepGroupBox)
         controlLayout.addWidget(self.alignmentGroupBox)
-        controlLayout.addWidget(self.tableGroupBox)
+        controlLayout.addLayout(rightLayout)
 
         QtCore.QTimer.singleShot(500, self.requestPosition)
 
@@ -765,6 +792,16 @@ class ControlWidget(QtWidgets.QTabWidget):
             self.tableYLabel.setText("n/a")
             self.tableZLabel.setText("n/a")
 
+    # def updateNeedlesPosition(self, position: float):
+    #     logger.info("needles position changed: %s", position)
+    #     x = (ureg("um") * position).to("mm").m
+    #     try:
+    #         self.needlesXLabel.setText(f"{x:.3f} mm")
+    #     except Exception as exc:
+    #         logger.exception(exc)
+    #         self.needlesXLabel.setText("n/a")
+
+
     def showException(self, exc):
         QtWidgets.QMessageBox.critical(self, "Exception occured", format(exc))
 
@@ -946,7 +983,7 @@ class AlignmentDialog(QtWidgets.QDialog):
         self.calibrateNeedlesAction.triggered.connect(self.calibrateNeedles)
 
         self.diagnoseNeedlesAction = QtWidgets.QAction(self)
-        self.diagnoseNeedlesAction.setText("Diagnose...")
+        self.diagnoseNeedlesAction.setText("Diagnose")
         self.diagnoseNeedlesAction.triggered.connect(self.diagnoseNeedles)
 
         self.menuBar = QtWidgets.QMenuBar(self)
@@ -1165,10 +1202,8 @@ class AlignmentDialog(QtWidgets.QDialog):
         dialog.exec()
 
     def diagnoseNeedles(self) -> None:
-        text = self.controlWidget.needleController.diagnose()
-        dialog = TextDialog(self)
-        dialog.setWindowTitle("TANGO diagnosis")
-        dialog.setText(text)
+        dialog = NeedlesDiagnoseDialog(self.controlWidget.needleController, self)
+        dialog.diagnose()
         dialog.exec()
 
     def shutdown(self):

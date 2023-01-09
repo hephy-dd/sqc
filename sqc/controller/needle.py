@@ -26,7 +26,6 @@ class NeedleController(QtCore.QObject):
     def __init__(self, station, parent=None) -> None:
         super().__init__(parent)
         self.station = station
-        self.positionChanged.connect(lambda pos: logger.info("Tango pos: %s", pos))
         self.abortRequested = False
         self._queue: queue.Queue = queue.Queue()
         self._shutdown = threading.Event()
