@@ -62,6 +62,7 @@ class Context(QtCore.QObject):
     item_progress_changed = QtCore.pyqtSignal(object, int, int)
 
     current_strip_changed = QtCore.pyqtSignal(str)
+    needle_position_changed = QtCore.pyqtSignal(str)
     data_changed = QtCore.pyqtSignal(str, str, str)
     statistics_changed = QtCore.pyqtSignal()
 
@@ -70,7 +71,7 @@ class Context(QtCore.QObject):
 
     exception_raised = QtCore.pyqtSignal(Exception)
 
-    def __init__(self, station: Station, parent: QtCore.QObject = None) -> None:
+    def __init__(self, station: Station, parent: Optional[QtCore.QObject] = None) -> None:
         super().__init__(parent)
         self._station: Station = station
         self._padfile: Optional[Padfile] = None
@@ -123,9 +124,14 @@ class Context(QtCore.QObject):
     def current_strip(self) -> str:
         return self._current_strip
 
+    # Events
+
     def set_current_strip(self, strip: Optional[str]) -> None:
         self._current_strip = strip or ""
         self.current_strip_changed.emit(self._current_strip)
+
+    def set_needle_position(self, position: str) -> None:
+        self.needle_position_changed.emit(position)
 
     def set_current_item(self, item: object) -> None:
         self.current_item_changed.emit(item)
@@ -135,8 +141,6 @@ class Context(QtCore.QObject):
 
     def set_item_progress(self, item: object, value: int, maximum: int) -> None:
         self.item_progress_changed.emit(item, value, maximum)
-
-    # Events
 
     def set_message(self, message: str) -> None:
         self.message_changed.emit(message)

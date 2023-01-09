@@ -36,6 +36,7 @@ class SequenceController:
         self.context.set_progress(0, 0, 0)
         self.context.set_current_item(None)
         self.context.set_current_strip(None)
+        self.context.set_needle_position("")
         self.context.set_stripscan_progress(0, 0)
 
         self.wait_for_box_humidity()
@@ -53,6 +54,7 @@ class SequenceController:
         self.context.set_progress(0, 0, 0)
         self.context.set_current_item(None)
         self.context.set_current_strip(None)
+        self.context.set_needle_position("")
         self.context.set_stripscan_progress(0, 0)
 
         self.safe_recover_table()

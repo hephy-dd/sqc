@@ -3,7 +3,7 @@ import math
 import os
 from pathlib import Path
 from collections import Counter
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, Tuple, Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -46,7 +46,7 @@ class DashboardWidget(QtWidgets.QWidget):
 
     outputPathChanged = QtCore.pyqtSignal(str)
 
-    def __init__(self, context, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, context, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
         self.context = context
@@ -59,6 +59,7 @@ class DashboardWidget(QtWidgets.QWidget):
         self.context.item_progress_changed.connect(lambda item, value, maximum: item.setProgress(value, maximum))
         self.context.bias_voltage_changed.connect(self.setBiasVoltage)
         self.context.current_strip_changed.connect(self.setCurrentStrip)
+        self.context.needle_position_changed.connect(self.setNeedlePosition)
         self.context.stripscan_progress_changed.connect(self.setStripscanProgress)
         self.context.stripscan_estimation_changed.connect(self.setStripscanEstimation)
 
@@ -247,6 +248,9 @@ class DashboardWidget(QtWidgets.QWidget):
         self.currentStripLineEdit = QtWidgets.QLineEdit()
         self.currentStripLineEdit.setReadOnly(True)
 
+        self.needlePositionLineEdit = QtWidgets.QLineEdit()
+        self.needlePositionLineEdit.setReadOnly(True)
+
         self.currentItemLineEdit = QtWidgets.QLineEdit()
         self.currentItemLineEdit.setReadOnly(True)
 
@@ -260,6 +264,7 @@ class DashboardWidget(QtWidgets.QWidget):
         statusFormLayout = QtWidgets.QFormLayout()
         statusFormLayout.addRow("Bias Voltage:", self.biasVoltageLineEdit)
         statusFormLayout.addRow("Current Strip:", self.currentStripLineEdit)
+        statusFormLayout.addRow("AC Needles:", self.needlePositionLineEdit)
         statusFormLayout.addRow("Current Measurement:", self.currentItemLineEdit)
         statusGroupBoxLayout = QtWidgets.QVBoxLayout(self.statusGroupBox)
         statusGroupBoxLayout.addLayout(statusFormLayout)
@@ -731,6 +736,12 @@ class DashboardWidget(QtWidgets.QWidget):
             self.currentStripLineEdit.setText(name)
         else:
             self.currentStripLineEdit.clear()
+
+    def needlePosition(self) -> str:
+        return self.needlePositionLineEdit.text()
+
+    def setNeedlePosition(self, position: str) -> None:
+        self.needlePositionLineEdit.setText(format(position))
 
     def setCurrentItem(self, item: SequenceItem) -> None:
         if item:

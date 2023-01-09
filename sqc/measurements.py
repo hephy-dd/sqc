@@ -272,6 +272,7 @@ class StripscanMeasurement(BaseMeasurement):
         station.bias_set_current_compliance(self.bias_compliance)
 
         station.needles_down()
+        self.context.set_needle_position("Down")
 
         self.apply_switching()
 
@@ -591,6 +592,7 @@ class CIntMeasurement(SingleStripMeasurement):
         station = self.context.station
 
         station.needles_up()
+        self.context.set_needle_position("Up")
 
         station.lcr_set_amplitude(self.lcr_amplitude)
         station.lcr_set_frequency(self.lcr_frequency)
@@ -634,6 +636,7 @@ class CIntMeasurement(SingleStripMeasurement):
         station.lcr_set_frequency(1e3)
 
         station.needles_down()
+        self.context.set_needle_position("Down")
 
         super().finalize()
 

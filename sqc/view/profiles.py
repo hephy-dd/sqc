@@ -1,7 +1,7 @@
 """Sensor profile management."""
 
 import os
-from typing import Any, Iterable, List, Dict
+from typing import Any, Iterable, List, Dict, Optional
 
 from PyQt5 import QtCore, QtWidgets
 
@@ -77,7 +77,7 @@ class ProfileTreeItem(QtWidgets.QTreeWidgetItem):
 
 class ProfileDialog(QtWidgets.QDialog):
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
         self.setWindowTitle("Sensor Profile")
@@ -200,7 +200,7 @@ class ProfileDialog(QtWidgets.QDialog):
 
 class ProfilesDialog(QtWidgets.QDialog):
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
         self.setWindowTitle("Sensor Profiles")

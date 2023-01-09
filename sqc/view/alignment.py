@@ -1,7 +1,7 @@
 import logging
 import random
 from functools import partial
-from typing import Iterable, List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple, Optional
 
 from comet.utils import ureg
 from PyQt5 import QtCore, QtWidgets
@@ -13,6 +13,7 @@ from ..core.geometry import load as load_padfile
 from ..core.transformation import affine_transformation, transform
 from ..settings import Settings
 
+from .calibration import TableCalibrationDialog, NeedlesCalibrationDialog, NeedlesDiagnoseDialog
 from .cameraview import CameraScene, CameraView
 from .cameraview import camera_registry
 
@@ -59,7 +60,7 @@ class SelectPadDialog(QtWidgets.QDialog):
 
     PadRole: int = 0x2000
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Select Pad")
 
@@ -192,7 +193,7 @@ class ControlWidget(QtWidgets.QTabWidget):
 
     lockedStateChanged = QtCore.pyqtSignal(bool)
 
-    def __init__(self, context, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, context, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
         self.setCurrentPosition((0, 0, 0))
@@ -204,6 +205,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.tableController.start()
 
         self.needleController = NeedleController(context.station)
+        # self.needleController.positionChanged.connect(self.updateNeedlesPosition)
         self.needleController.movementFinished.connect(self.finishMove)
         self.needleController.failed.connect(self.showException)
         self.needleController.start()
@@ -402,6 +404,32 @@ class ControlWidget(QtWidgets.QTabWidget):
         tableLayout.addRow("Y", self.tableYLabel)
         tableLayout.addRow("Z", self.tableZLabel)
 
+        # self.tableCalibrationGroupBox = QtWidgets.QGroupBox(self)
+        # self.tableCalibrationGroupBox.setTitle("Table Calibration")
+
+        # tableCalibrationLayout = QtWidgets.QFormLayout(self.tableCalibrationGroupBox)
+
+        # self.needlesPositionGroupBox = QtWidgets.QGroupBox(self)
+        # self.needlesPositionGroupBox.setTitle("TANGO Position")
+
+        # self.needlesXLabel = QtWidgets.QLabel(self)
+        # self.needlesXLabel.setAlignment(QtCore.Qt.AlignRight)
+
+        # needlesLayout = QtWidgets.QFormLayout(self.needlesPositionGroupBox)
+        # needlesLayout.addRow("X", self.needlesXLabel)
+
+        # self.needlesCalibrationGroupBox = QtWidgets.QGroupBox(self)
+        # self.needlesCalibrationGroupBox.setTitle("TANGO Calibration")
+
+        # needlesCalibrationLayout = QtWidgets.QFormLayout(self.needlesCalibrationGroupBox)
+
+        rightLayout = QtWidgets.QVBoxLayout()
+        rightLayout.addWidget(self.tableGroupBox)
+        # rightLayout.addWidget(self.tableCalibrationGroupBox)
+        # rightLayout.addWidget(self.needlesPositionGroupBox)
+        # rightLayout.addWidget(self.needlesCalibrationGroupBox)
+        # rightLayout.setStretch(3, 1)
+
         leftCommandsLayout = QtWidgets.QVBoxLayout()
         leftCommandsLayout.addWidget(self.commandsGroupBox)
         leftCommandsLayout.addWidget(self.needlesGroupBox)
@@ -414,7 +442,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         controlLayout.addWidget(self.dialGroupBox)
         controlLayout.addWidget(self.stepGroupBox)
         controlLayout.addWidget(self.alignmentGroupBox)
-        controlLayout.addWidget(self.tableGroupBox)
+        controlLayout.addLayout(rightLayout)
 
         QtCore.QTimer.singleShot(500, self.requestPosition)
 
@@ -764,6 +792,16 @@ class ControlWidget(QtWidgets.QTabWidget):
             self.tableYLabel.setText("n/a")
             self.tableZLabel.setText("n/a")
 
+    # def updateNeedlesPosition(self, position: float):
+    #     logger.info("needles position changed: %s", position)
+    #     x = (ureg("um") * position).to("mm").m
+    #     try:
+    #         self.needlesXLabel.setText(f"{x:.3f} mm")
+    #     except Exception as exc:
+    #         logger.exception(exc)
+    #         self.needlesXLabel.setText("n/a")
+
+
     def showException(self, exc):
         QtWidgets.QMessageBox.critical(self, "Exception occured", format(exc))
 
@@ -773,7 +811,7 @@ class OptionsWidget(QtWidgets.QWidget):
 
     stepsChanged = QtCore.pyqtSignal()
 
-    def __init__(self, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
         # Step width
@@ -919,7 +957,7 @@ class OptionsWidget(QtWidgets.QWidget):
 
 class AlignmentDialog(QtWidgets.QDialog):
 
-    def __init__(self, context, parent: QtWidgets.QWidget = None) -> None:
+    def __init__(self, context, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.setWindowTitle("Alignment")
 
@@ -931,6 +969,36 @@ class AlignmentDialog(QtWidgets.QDialog):
         self.cameraView.setMinimumHeight(240)
 
         self.cameraController = None
+
+        self.closeAction = QtWidgets.QAction(self)
+        self.closeAction.setText("&Close")
+        self.closeAction.triggered.connect(self.close)
+
+        self.calibrateTableAction = QtWidgets.QAction(self)
+        self.calibrateTableAction.setText("Calibrate...")
+        self.calibrateTableAction.triggered.connect(self.calibrateTable)
+
+        self.calibrateNeedlesAction = QtWidgets.QAction(self)
+        self.calibrateNeedlesAction.setText("Calibrate...")
+        self.calibrateNeedlesAction.triggered.connect(self.calibrateNeedles)
+
+        self.diagnoseNeedlesAction = QtWidgets.QAction(self)
+        self.diagnoseNeedlesAction.setText("Diagnose")
+        self.diagnoseNeedlesAction.triggered.connect(self.diagnoseNeedles)
+
+        self.menuBar = QtWidgets.QMenuBar(self)
+
+        self.fileMenu = self.menuBar.addMenu("&File")
+        self.fileMenu.addAction(self.closeAction)
+
+        self.toolsMenu = self.menuBar.addMenu("&Tools")
+
+        self.tableMenu = self.toolsMenu.addMenu("&Table (Corvus)")
+        self.tableMenu.addAction(self.calibrateTableAction)
+
+        self.needlesMenu = self.toolsMenu.addMenu("&Needles (TANGO)")
+        self.needlesMenu.addAction(self.calibrateNeedlesAction)
+        self.needlesMenu.addAction(self.diagnoseNeedlesAction)
 
         self.exposureSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
         self.exposureSlider.setMaximumWidth(128)
@@ -987,15 +1055,22 @@ class AlignmentDialog(QtWidgets.QDialog):
         self.buttonBox.accepted.connect(self.accept)
         self.buttonBox.rejected.connect(self.reject)
 
+        self.contentWidget = QtWidgets.QWidget(self)
+
+        contentLayout = QtWidgets.QVBoxLayout(self.contentWidget)
+        contentLayout.addWidget(self.cameraView)
+        contentLayout.addWidget(self.zoomToolBar)
+        contentLayout.addWidget(self.controlWidget)
+        contentLayout.addWidget(self.buttonBox)
+        contentLayout.setStretch(0, 1)
+        contentLayout.setStretch(1, 0)
+        contentLayout.setStretch(2, 0)
+        contentLayout.setStretch(3, 0)
+
         layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(self.cameraView)
-        layout.addWidget(self.zoomToolBar)
-        layout.addWidget(self.controlWidget)
-        layout.addWidget(self.buttonBox)
-        layout.setStretch(0, 1)
-        layout.setStretch(1, 0)
-        layout.setStretch(2, 0)
-        layout.setStretch(3, 0)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self.menuBar)
+        layout.addWidget(self.contentWidget)
 
         self.accepted.connect(self.stopCamera)
         self.rejected.connect(self.stopCamera)
@@ -1117,6 +1192,19 @@ class AlignmentDialog(QtWidgets.QDialog):
     def stopCamera(self):
         if self.cameraController:
             self.cameraController.stop()
+
+    def calibrateTable(self) -> None:
+        dialog = TableCalibrationDialog(self.controlWidget.tableController, self)
+        dialog.exec()
+
+    def calibrateNeedles(self) -> None:
+        dialog = NeedlesCalibrationDialog(self.controlWidget.needleController, self)
+        dialog.exec()
+
+    def diagnoseNeedles(self) -> None:
+        dialog = NeedlesDiagnoseDialog(self.controlWidget.needleController, self)
+        dialog.diagnose()
+        dialog.exec()
 
     def shutdown(self):
         self.controlWidget.shutdown()
