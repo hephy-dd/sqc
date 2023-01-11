@@ -741,7 +741,7 @@ class DashboardWidget(QtWidgets.QWidget):
         return self.needlePositionLineEdit.text()
 
     def setNeedlePosition(self, position: str) -> None:
-        self.needlePositionLineEdit.setText(format(position))
+        self.needlePositionLineEdit.setText(format(position).title())
 
     def setCurrentItem(self, item: SequenceItem) -> None:
         if item:

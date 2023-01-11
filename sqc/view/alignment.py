@@ -320,7 +320,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.commandsGroupBox.setTitle("Commands")
 
         self.needlesGroupBox = QtWidgets.QGroupBox()
-        self.needlesGroupBox.setTitle("Needles")
+        self.needlesGroupBox.setTitle("AC Needles")
 
         self.boxGroupBox = QtWidgets.QGroupBox()
         self.boxGroupBox.setTitle("Box")

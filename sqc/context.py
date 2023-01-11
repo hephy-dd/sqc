@@ -85,6 +85,7 @@ class Context(QtCore.QObject):
         self.environ_errors: int = 0
         # Signals
         station.bias_voltage_changed.add(self.bias_voltage_changed.emit)
+        station.needles_position_changed.add(self.needle_position_changed.emit)
 
     @property
     def station(self) -> Station:
@@ -129,9 +130,6 @@ class Context(QtCore.QObject):
     def set_current_strip(self, strip: Optional[str]) -> None:
         self._current_strip = strip or ""
         self.current_strip_changed.emit(self._current_strip)
-
-    def set_needle_position(self, position: str) -> None:
-        self.needle_position_changed.emit(position)
 
     def set_current_item(self, item: object) -> None:
         self.current_item_changed.emit(item)

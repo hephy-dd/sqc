@@ -48,6 +48,9 @@ def wait_until(callback, timeout=60.0, interval=0.250) -> None:
 class Station:
 
     def __init__(self) -> None:
+        self.bias_voltage_changed: Event = Event()
+        self.needles_position_changed: Event = Event()
+
         self._resources: Dict[str, Driver] = {}
         self.registered_resources = [
             "hv_switch",
@@ -59,8 +62,6 @@ class Station:
             "table",
             "tango"
         ]
-
-        self.bias_voltage_changed: Event = Event()
 
         self.environ: EnvironController = EnvironController()
         self.environ.start()
@@ -730,6 +731,7 @@ class Station:
         self.needles_move_absolute(position)
         self.needles_wait_movement_finished()
         self.needles_verify_position(position)
+        self.needles_position_changed("up")
         logger.info("Moving needles up... done.")
 
     def needles_down(self) -> None:
@@ -739,6 +741,7 @@ class Station:
         self.needles_move_absolute(position)
         self.needles_wait_movement_finished()
         self.needles_verify_position(position)
+        self.needles_position_changed("down")
         logger.info("Moving needles down... done.")
 
 
