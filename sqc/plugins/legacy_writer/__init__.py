@@ -8,7 +8,6 @@ from collections import namedtuple
 from comet.utils import make_iso, safe_filename
 
 from sqc import __version__
-from sqc.plugins import Plugin
 
 __all__ = ["LegacyWriterPlugin"]
 
@@ -36,10 +35,13 @@ def join_ivc(iv, cv):
     return rows
 
 
-class LegacyWriterPlugin(Plugin):
+class LegacyWriterPlugin:
 
-    def install(self, window):
-        context = window.context
+    def __init__(self, window) -> None:
+        self.window = window
+
+    def install(self) -> None:
+        context = self.window.context
         context.add_writer(LegacyWriter(context))
 
 

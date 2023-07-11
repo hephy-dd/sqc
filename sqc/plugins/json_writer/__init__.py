@@ -6,7 +6,6 @@ import json
 from comet.utils import make_iso, safe_filename
 
 from sqc import __version__
-from sqc.plugins import Plugin
 
 __all__ = ["JSONWriterPlugin"]
 
@@ -14,10 +13,13 @@ __all__ = ["JSONWriterPlugin"]
 logger = logging.getLogger(__name__)
 
 
-class JSONWriterPlugin(Plugin):
+class JSONWriterPlugin:
 
-    def install(self, window):
-        context = window.context
+    def __init__(self, window) -> None:
+        self.window = window
+
+    def install(self) -> None:
+        context = self.window.context
         context.add_writer(JSONWriter(context))
 
 

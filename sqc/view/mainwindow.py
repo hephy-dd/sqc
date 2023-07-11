@@ -41,8 +41,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.context = context
 
-        self.plugins = []
-
         # Dock widgets
 
         self.loggerWidget = QueuedLoggerWidget(self)
@@ -287,23 +285,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def setLocked(self, state: bool) -> None:
         self.setProperty("locked", state)
-
-    # Plugins
-
-    def installPlugin(self, plugin):
-        try:
-            self.plugins.append(plugin)
-            plugin.install(self)
-        except Exception as exc:
-            logger.exception(exc)
-
-    def uninstallPlugin(self, plugin):
-        if plugin in self.plugins:
-            try:
-                plugin.uninstall(self)
-                self.plugins.remove(plugin)
-            except Exception as exc:
-                logger.exception(exc)
 
     # Shutdown
 

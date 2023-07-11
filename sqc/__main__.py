@@ -23,7 +23,7 @@ from .core.resource import driver_registry
 
 from .view.mainwindow import MainWindow
 
-from .plugins import Plugin
+from .plugins import PluginManager
 from .plugins.json_writer import JSONWriterPlugin
 from .plugins.legacy_writer import LegacyWriterPlugin
 from .plugins.ueye_camera import UEyeCameraPlugin
@@ -34,12 +34,6 @@ PACKAGE_PATH: str = os.path.dirname(__file__)
 ASSETS_PATH: str = os.path.join(PACKAGE_PATH, "assets")
 LOG_FILENAME: str = os.path.expanduser("~/sqc.log")
 CONTENTS_URL: str = "https://github.com/hephy-dd/sqc"
-
-ENABLED_PLUGINS: List[Type[Plugin]] = [
-    JSONWriterPlugin,
-    LegacyWriterPlugin,
-    UEyeCameraPlugin
-]
 
 logger = logging.getLogger()
 
@@ -139,12 +133,15 @@ def main() -> None:
 
     logger.info("Installing plugins...")
 
-    for plugin in ENABLED_PLUGINS:
-        try:
-            window.installPlugin(plugin())
-        except Exception as exc:
-            logger.exception(exc)
-            logger.error("Failed to install plugin: %r", plugin)
+    plugin_manager = PluginManager()
+    plugin_manager.register_plugin(JSONWriterPlugin(window))
+    plugin_manager.register_plugin(LegacyWriterPlugin(window))
+    plugin_manager.register_plugin(UEyeCameraPlugin(window))
+
+    try:
+        plugin_manager.install_plugins()
+    except Exception as exc:
+        logger.exception(exc)
 
     window.readSettings()
     window.show()
@@ -155,6 +152,8 @@ def main() -> None:
     window.shutdown()
 
     station.shutdown()
+
+    plugin_manager.uninstall_plugins()
 
 
 if __name__ == "__main__":
