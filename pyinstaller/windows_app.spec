@@ -13,7 +13,7 @@ package_icon = os.path.join(package_root, "assets", "icons", "sqc.ico")
 
 # Create windows version info
 create_versionfile(
-    output_file=os.path.join(package_root, "pyinstaller", "version_info.txt"),
+    output_file=os.path.join(os.getcwd(), "version_info.txt"),
     version=f"{version}.0",
     company_name="HEPHY",
     file_description="Sensor Quality Control for the CMS Tracker",
@@ -61,7 +61,7 @@ exe = EXE(
     a.datas,
     [],
     name=filename,
-    version="version_info.txt",
+    version=os.path.join(os.getcwd(), "version_info.txt"),
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
