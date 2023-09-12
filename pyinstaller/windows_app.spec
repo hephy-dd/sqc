@@ -11,16 +11,18 @@ block_cipher = None
 package_root = os.path.join(os.path.dirname(sqc.__file__))
 package_icon = os.path.join(package_root, "assets", "icons", "sqc.ico")
 
+version_info = os.path.join(os.getcwd(), "version_info.txt")
+
 # Create windows version info
 create_versionfile(
-    output_file=os.path.join(os.getcwd(), "version_info.txt"),
+    output_file=version_info,
     version=f"{version}.0",
     company_name="HEPHY",
     file_description="Sensor Quality Control for the CMS Tracker",
     internal_name="SQC",
     legal_copyright="Copyright 2022-2023 HEPHY. All rights reserved.",
     original_filename=filename,
-    product_name="SQC"
+    product_name="SQC",
 )
 
 a = Analysis(
@@ -44,13 +46,13 @@ a = Analysis(
     win_no_prefer_redirects=False,
     win_private_assemblies=False,
     cipher=block_cipher,
-    noarchive=False
+    noarchive=False,
 )
 
 pyz = PYZ(
     a.pure,
     a.zipped_data,
-    cipher=block_cipher
+    cipher=block_cipher,
 )
 
 exe = EXE(
@@ -61,7 +63,7 @@ exe = EXE(
     a.datas,
     [],
     name=filename,
-    version=os.path.join(os.getcwd(), "version_info.txt"),
+    version=version_info,
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
@@ -69,5 +71,5 @@ exe = EXE(
     upx_exclude=[],
     runtime_tmpdir=None,
     console=console,
-    icon=package_icon
+    icon=package_icon,
 )
