@@ -11,12 +11,9 @@ block_cipher = None
 package_root = os.path.join(os.path.dirname(sqc.__file__))
 package_icon = os.path.join(package_root, "assets", "icons", "sqc.ico")
 
-print("XXXXXXXXXXXXXXX")
-print(os.getcwd())
-
 # Create windows version info
 create_versionfile(
-    output_file="version_info.txt",
+    output_file=os.path.join(package_root, "pyinstaller", "version_info.txt"),
     version=f"{version}.0",
     company_name="HEPHY",
     file_description="Sensor Quality Control for the CMS Tracker",
