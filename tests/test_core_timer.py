@@ -3,14 +3,17 @@ import time
 from sqc.core.timer import Timer
 
 
-class TestTimer:
+def test_timer(monkeypatch):
+    time_values = iter([1000, 2000, 2000, 4000])  # values to be returned by time.monotonic()
 
-    def test_timer(self):
-        t = Timer()
-        time.sleep(0.002)
-        dt = t.delta()
-        assert dt >= 0.002
-        t.reset()
-        time.sleep(0.001)
-        dt = t.delta()
-        assert dt >= 0.001
+    monkeypatch.setattr(time, "monotonic", lambda: next(time_values))
+    monkeypatch.setattr(time, "sleep", lambda sec: None)
+
+    t = Timer()
+    time.sleep(1)
+    dt = t.delta()
+    assert dt == 1000
+    t.reset()
+    time.sleep(2)
+    dt = t.delta()
+    assert dt == 2000
