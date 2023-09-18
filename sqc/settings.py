@@ -29,22 +29,6 @@ DEFAULT_RESOURCES = {
 }
 
 
-def load_padfiles() -> List[str]:
-    padfiles = []
-    path = os.path.join(ROOT_PATH, "config", "pads")
-    for filename in list(Path(path).glob("**/*.txt")):
-        padfiles.append(format(filename))
-    return padfiles
-
-
-def load_sequences() -> List[str]:
-    sequences = []
-    path = os.path.join(ROOT_PATH, "config", "sequences")
-    for filename in list(Path(path).glob("*.yaml")):
-        sequences.append(format(filename))
-    return sequences
-
-
 class Settings:
 
     def settings(self):

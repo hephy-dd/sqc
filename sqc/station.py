@@ -601,7 +601,7 @@ class Station:
         lcr = self.get_resource("lcr")
         lcr.write("TRIG:IMM")
         # prim, sec = list(map(float, lcr.query("FETC?").split(",")))[:2]
-        prim, sec = lcr.measure_pair()
+        prim, sec = lcr.measure_impedance()
         logger.info("LCR Meter reading: %s, %s", format_metric(prim, "F"), format_metric(sec, "Ohm"))
         return prim, sec
 

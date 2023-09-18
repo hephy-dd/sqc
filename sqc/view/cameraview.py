@@ -79,10 +79,10 @@ class CameraScene(QtWidgets.QGraphicsScene):
             x = int(image.width() * centerX - width / 2)
             y = int(image.height() * centerY - height / 2)
             croppedImage = image.copy(x, y, width, height)
-            scaledImage = croppedImage.scaled(rect.width(), rect.height(), QtCore.Qt.KeepAspectRatio)
+            scaledImage = croppedImage.scaled(int(rect.width()), int(rect.height()), QtCore.Qt.KeepAspectRatio)
             xOffset = int((rect.width() - scaledImage.width()) / 2)
             yOffset = int((rect.height() - scaledImage.height()) / 2)
-            painter.drawImage(rect.x() + xOffset, rect.y() + yOffset, scaledImage)
+            painter.drawImage(int(rect.x()) + xOffset, int(rect.y()) + yOffset, scaledImage)
 
         self.drawFpsCounter(painter, rect)
 
@@ -94,7 +94,7 @@ class CameraScene(QtWidgets.QGraphicsScene):
         # color
         painter.setPen(QtCore.Qt.yellow)
         # text
-        pos = QtCore.QPoint(rect.x() + 10, rect.y() + 34)
+        pos = QtCore.QPoint(int(rect.x()) + 10, int(rect.y()) + 34)
         painter.drawText(pos, f"{self._fps:.1f} fps")
 
 
