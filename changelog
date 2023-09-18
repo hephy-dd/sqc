@@ -9,9 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.4.0] - 2023-09-18
 ### Added
 - Support for PyInstaller (#18).
+- Support for Python 3.11.
 
 ### Changed
-- Migrated to comet-1.0.dev4.
+- Migrated to comet-1.0.dev5.
 
 ### Removed
 - Support for Python 3.7.
