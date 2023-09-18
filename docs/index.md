@@ -21,6 +21,9 @@ python -m sqc
 When running for the first time make sure to configure the instrument settings
 according to the individual setup by navigation to `Edit` &rarr; `Resources`.
 
+Add sensor profiles by combining a sequence file and a sensor pad file by
+navigating to `Edit` &rarr; `Sensor Profiles`.
+
 ### Safety
 
 **Warning:** this software controls a highly complex, high voltage measurement

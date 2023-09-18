@@ -1,6 +1,6 @@
-# Force to include for PyVISA
-import pyusb
-import pyserial
+# Force include for PyVISA
+import usb
+import serial
 import gpib_ctypes
 
 from sqc.__main__ import main

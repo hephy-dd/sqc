@@ -7,7 +7,7 @@ from typing import List, Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-from ..settings import Settings, load_padfiles, load_sequences
+from ..settings import Settings
 from .dashboard import DashboardWidget, formatTemperature, formatHumidity
 from .profiles import ProfilesDialog, readProfiles
 from .resources import ResourcesDialog
