@@ -421,6 +421,7 @@ class MainWindow(QtWidgets.QMainWindow):
             dialog.setJoystickEnabled(False)
             dialog.exec()
             dialog.syncSettings()
+            self.handleAutoStart()
         except Exception as exc:
             logger.exception(exc)
         finally:
@@ -536,6 +537,28 @@ class MainWindow(QtWidgets.QMainWindow):
         return True
 
     # Actions
+
+    def handleAutoStart(self) -> None:
+        """Auto starts measurements if requested by context."""
+        if self.context.auto_start_measurement:
+            self.context.auto_start_measurement = False
+
+            progress = QtWidgets.QProgressDialog("Auto Start Measurements...", "Cancel", 0, 5, self)
+            progress.setValue(0)
+            progress.setWindowModality(True)
+
+            def updateProgress():
+                counter = progress.value() + 1
+                progress.setValue(counter)
+
+            timer = QtCore.QTimer()
+            timer.timeout.connect(updateProgress)
+            timer.start(1000)  # 1000 ms = 1 second
+
+            progress.exec()
+
+            if not progress.wasCanceled():
+                self.startAction.trigger()
 
     @QtCore.pyqtSlot()
     def requestStart(self):

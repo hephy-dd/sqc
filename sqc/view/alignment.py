@@ -301,6 +301,7 @@ class AlignmentController:
 class ControlWidget(QtWidgets.QTabWidget):
 
     lockedStateChanged = QtCore.pyqtSignal(bool)
+    requestClose = QtCore.pyqtSignal()
 
     def __init__(self, context, scene, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
@@ -930,6 +931,8 @@ class ControlWidget(QtWidgets.QTabWidget):
     def showInspectDialog(self) -> None:
         dialog = QtWidgets.QDialog()
         widget = InspectionWidget(self.context, self.scene)
+        widget.requestClose.connect(dialog.close)
+        widget.requestClose.connect(self.requestClose)
         layout = QtWidgets.QVBoxLayout(dialog)
         layout.addWidget(widget)
         dialog.exec()
@@ -944,9 +947,11 @@ class InspectionWidget(QtWidgets.QWidget):
 
     progressRangeChanged = QtCore.pyqtSignal(int, int)
     progressValueChanged = QtCore.pyqtSignal(int)
+    success = QtCore.pyqtSignal()
     failed = QtCore.pyqtSignal(Exception)
     finished = QtCore.pyqtSignal()
     lockedStateChanged = QtCore.pyqtSignal(bool)
+    requestClose = QtCore.pyqtSignal()
 
     def __init__(self, context, scene, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
@@ -973,6 +978,9 @@ class InspectionWidget(QtWidgets.QWidget):
         self.outputLineEdit = QtWidgets.QLineEdit(self)
         self.outputLineEdit.setText("/tmp/images")
 
+        self.autoStartMeasurementCheckBox = QtWidgets.QCheckBox(self)
+        self.autoStartMeasurementCheckBox.setText("Start measurements when finished")
+
         self.startButton = QtWidgets.QPushButton(self)
         self.startButton.setText("&Start")
 
@@ -996,6 +1004,7 @@ class InspectionWidget(QtWidgets.QWidget):
         layout.addWidget(self.sensorHeightSpinBox)
         layout.addWidget(QtWidgets.QLabel("Ouptut Path"))
         layout.addWidget(self.outputLineEdit)
+        layout.addWidget(self.autoStartMeasurementCheckBox)
         layout.addWidget(self.startButton)
         layout.addWidget(self.stopButton)
         layout.addWidget(self.openButton)
@@ -1003,6 +1012,7 @@ class InspectionWidget(QtWidgets.QWidget):
 
         self.progressRangeChanged.connect(self.progressBar.setRange)
         self.progressValueChanged.connect(self.progressBar.setValue)
+        self.success.connect(self.handleAutoStart)
         self.failed.connect(self.showException)
         self.finished.connect(lambda: self.lockedStateChanged.emit(False))
 
@@ -1073,6 +1083,11 @@ class InspectionWidget(QtWidgets.QWidget):
         self.stopButton.setEnabled(False)
         self._stopRequested.set()
 
+    def handleAutoStart(self):
+        if self.autoStartMeasurementCheckBox.isChecked():
+            self.context.auto_start_measurement = True
+            self.requestClose.emit()
+
     def worker(self, config: dict):
         try:
             sensor_name = config.get("sensor_name", "")
@@ -1087,8 +1102,10 @@ class InspectionWidget(QtWidgets.QWidget):
             finished_steps = 0
             waiting_time = 1.0
 
+            x_offset = 0
+            y_offset = 0
             sensor_width = 10
-            sensor_width = 10
+            sensor_height = 10
             x_step = sensor_width / x_images
             y_step = sensor_height / y_images
 
@@ -1105,7 +1122,7 @@ class InspectionWidget(QtWidgets.QWidget):
             def table_move(x, y):
                 x_pos = (x * x_step) + x_offset
                 y_pos = (y * y_step) + y_offset
-                self.context.station.table_move_absolute((x_pos, y_pos, z_pos))
+                self.context.station.table_safe_move_absolute((x_pos, y_pos, z_pos))
 
             def increment_progress():
                 nonlocal finished_steps
@@ -1129,6 +1146,8 @@ class InspectionWidget(QtWidgets.QWidget):
                 grab_image(x, y)
                 increment_progress()
 
+            if not self._stopRequested.is_set():
+                self.success.emit()
         except Exception as exc:
             self.failed.emit(exc)
         finally:
@@ -1373,6 +1392,7 @@ class AlignmentDialog(QtWidgets.QDialog):
 
         self.controlWidget = ControlWidget(context, self.cameraScene, self)
         self.controlWidget.lockedStateChanged.connect(self.setLocked)
+        self.controlWidget.requestClose.connect(self.close)
 
         self.buttonBox = QtWidgets.QDialogButtonBox()
         self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Close)
