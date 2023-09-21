@@ -161,7 +161,9 @@ class FrameThread(Thread):
                     self.cam.handle(), self.timeout, img_buffer.mem_ptr, img_buffer.mem_id
                 )
                 if ret == ueye.IS_SUCCESS:
-                    self.notify(ImageData(self.cam.handle(), img_buffer))
+                    image_data = ImageData(self.cam.handle(), img_buffer)
+                    self.notify(image_data.as_1d_image())
+                    image_data.unlock()
             except Exception as exc:
                 for handler in self.exception_handlers:
                     handler(exc)

@@ -412,6 +412,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.context.request_continue()
 
     def showAlignmentDialog(self) -> None:
+        self.dashboardWidget.updateContext()
         dialog = AlignmentDialog(self.context)
         try:
             dialog.setPadfile(self.context.padfile)

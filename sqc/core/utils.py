@@ -12,6 +12,7 @@ __all__ = [
     "parse_strip_expression",
     "parse_strips",
     "verify_position",
+    "alternate_traversal",
 ]
 
 
@@ -77,3 +78,20 @@ def verify_position(reference: Tuple[float, float, float], position: Tuple[float
         if abs(a - b) > abs(threshold):
             return False
     return True
+
+
+def alternate_traversal(x_steps: int, y_steps: int) -> Generator[Tuple[int, int], None, None]:
+    """Generates coordinates for a 2D grid in an alternating left-to-right,
+    right-to-left pattern.
+
+    Example:
+    >>> list(alternate_traversal(3, 2))
+    [(0, 0), (1, 0), (2, 0), (2, 1), (1, 1), (0, 1)]
+    """
+    for y in range(y_steps):
+        if y % 2 == 0:  # even rows
+            for x in range(x_steps):
+                yield x, y
+        else:  # odd rows
+            for x in reversed(range(x_steps)):
+                yield x, y

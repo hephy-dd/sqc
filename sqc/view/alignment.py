@@ -1,21 +1,30 @@
 import logging
 import random
+import threading
+import os
+import sys
+import time
+import subprocess
 from functools import partial
 from typing import Iterable, List, Optional, Tuple, Optional
 
-from comet.utils import ureg
-from PyQt5 import QtCore, QtWidgets
+import numpy as np
+
+from comet.utils import ureg, make_iso, safe_filename
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..controller.needle import NeedleController
 from ..controller.table import TableController
+from ..core.camera import camera_registry
 from ..core.geometry import Pad, Padfile, NeedlesGeometry
 from ..core.geometry import load as load_padfile
 from ..core.transformation import affine_transformation, transform
+from ..core.utils import alternate_traversal
 from ..settings import Settings
 
 from .calibration import TableCalibrationDialog, NeedlesCalibrationDialog
 from .cameraview import CameraScene, CameraView
-from .cameraview import camera_registry
 
 __all__ = ["AlignmentDialog"]
 
@@ -23,6 +32,106 @@ logger = logging.getLogger(__name__)
 
 
 Position = Tuple[float, float, float]
+
+
+def open_directory(path='.'):
+    try:
+        if sys.platform == 'win32':
+            os.startfile(path)
+        elif sys.platform == 'darwin':
+            subprocess.check_call(['open', '--', path])
+        else:  # 'linux' and possibly 'freebsd' etc.
+            subprocess.check_call(['xdg-open', path])
+    except Exception as e:
+        print(f"Error opening directory: {e}")
+
+
+def generate_noise_with_exposure(height, width, exposure=1.0):
+    """
+    Generate random noise in RGB format and adjust its brightness based on exposure.
+
+    Parameters:
+    - height: The height of the image.
+    - width: The width of the image.
+    - exposure: Exposure setting (multiplier to adjust brightness).
+                > 1.0 makes the image brighter, < 1.0 makes it darker.
+
+    Returns:
+    - A numpy array representing the noise image with adjusted brightness.
+    """
+
+    # Generate random values between 0 and 255 for an RGB image
+    noise_image = np.random.randint(0, 256, (height, width, 3), dtype=np.uint8).astype(np.float32)
+
+    # Adjust the brightness based on the exposure setting (in-place operation)
+    np.multiply(noise_image, exposure, out=noise_image)
+
+    # Clip values to be within the [0, 255] range and convert to uint8 (in-place when possible)
+    return np.clip(noise_image, 0, 255, out=noise_image).astype(np.uint8)
+
+
+
+def exposure_to_multiplier(exposure):
+    """
+    Convert an exposure value in the range [0, 250] to a brightness multiplier.
+
+    Parameters:
+    - exposure: Exposure value in the range [0, 250]
+
+    Returns:
+    - Brightness multiplier.
+    """
+    # Define the minimum and maximum multipliers
+    min_multiplier = 0.5
+    max_multiplier = 2.0
+
+    # Linearly interpolate between the minimum and maximum multipliers
+    multiplier = min_multiplier + (exposure/250.0) * (max_multiplier - min_multiplier)
+
+    return multiplier
+
+
+class DummyCamera:
+
+    def __init__(self, config):
+        self.frame_handlers = []
+        self.free_running = False
+        self.frame_thread = None
+        self.exposure = 30
+
+    def start(self):
+        self.free_running = True
+        self.frame_thread = threading.Thread(target=self.capture)
+        self.frame_thread.start()
+
+    def stop(self):
+        self.free_running = False
+
+    def set_exposure(self, exposure):
+        self.exposure = exposure
+
+    def add_frame_handler(self, handler):
+        self.frame_handlers.append(handler)
+
+    def shutdown(self):
+        self.free_running = False
+        if self.frame_thread:
+            self.frame_thread.join()
+
+    def capture(self):
+        try:
+            while self.free_running:
+                t = time.monotonic()
+                width = 768*4
+                height = 512*4
+                exposure = exposure_to_multiplier(self.exposure)
+                image_data = generate_noise_with_exposure(height, width, exposure)
+                for handler in self.frame_handlers:
+                    handler(image_data)
+                waiting_time = max((1/20.) - (time.monotonic() - t), 0)
+                time.sleep(waiting_time)
+        except Exception as exc:
+            logging.exception(exc)
 
 
 class ReferenceItem(QtWidgets.QTreeWidgetItem):
@@ -193,8 +302,11 @@ class ControlWidget(QtWidgets.QTabWidget):
 
     lockedStateChanged = QtCore.pyqtSignal(bool)
 
-    def __init__(self, context, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, context, scene, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
+
+        self.context = context
+        self.scene = scene
 
         self.setCurrentPosition((0, 0, 0))
 
@@ -316,6 +428,10 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.saveButton.setEnabled(False)
         self.saveButton.clicked.connect(self.saveAlignment)
 
+        self.showInspectDialogButton = QtWidgets.QPushButton("Inspection")
+        self.showInspectDialogButton.setEnabled(False)
+        self.showInspectDialogButton.clicked.connect(self.showInspectDialog)
+
         self.commandsGroupBox = QtWidgets.QGroupBox()
         self.commandsGroupBox.setTitle("Commands")
 
@@ -369,6 +485,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         alignmentLeftLayout.addWidget(self.assignButton)
         alignmentLeftLayout.addWidget(self.nextButton)
         alignmentLeftLayout.addWidget(self.saveButton)
+        alignmentLeftLayout.addWidget(self.showInspectDialogButton)
         alignmentLeftLayout.addStretch()
 
         alignmentCenterLayout = QtWidgets.QVBoxLayout()
@@ -524,6 +641,7 @@ class ControlWidget(QtWidgets.QTabWidget):
             self.inspectButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.updateAlignmentButtons()
         self.saveButton.setEnabled(False)
+        self.showInspectDialogButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.resizeAlignmentTree()
 
     def addReferncePad(self, pad):
@@ -638,6 +756,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.contactButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.inspectButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.saveButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
+        self.showInspectDialogButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.nextButton.setEnabled(len(self.alignmentController.assignedItems()) < 3)
         if self.alignmentController.isAligned():
             self.setAlignmentHint("Click <b>Save</b> to accept alignment.")
@@ -664,6 +783,7 @@ class ControlWidget(QtWidgets.QTabWidget):
             self.contactButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
             self.inspectButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
             self.saveButton.setEnabled(False)
+            self.showInspectDialogButton.setEnabled(False)
             self.assignButton.setEnabled(True)
             self.nextButton.setEnabled(False)
             item = self.alignmentController.nextItem()
@@ -677,6 +797,7 @@ class ControlWidget(QtWidgets.QTabWidget):
 
     def saveAlignment(self):
         self.saveButton.setEnabled(False)
+        self.showInspectDialogButton.setEnabled(True)
         self.nextButton.setEnabled(False)
         self.assignButton.setEnabled(False)
         try:
@@ -692,6 +813,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         item = self.alignmentTreeWidget.currentItem()
         self.inspectReferenceButton.setEnabled(item is not None)
         self.saveButton.setEnabled(self.alignmentController.isAligned())
+        self.showInspectDialogButton.setEnabled(self.alignmentController.isAligned())
         self.nextButton.setEnabled(self.alignmentController.nextItem() is not None)
 
     def showSelectPad(self):
@@ -805,9 +927,212 @@ class ControlWidget(QtWidgets.QTabWidget):
     #         logger.exception(exc)
     #         self.needlesXLabel.setText("n/a")
 
+    def showInspectDialog(self) -> None:
+        dialog = QtWidgets.QDialog()
+        widget = InspectionWidget(self.context, self.scene)
+        layout = QtWidgets.QVBoxLayout(dialog)
+        layout.addWidget(widget)
+        dialog.exec()
+        widget.stopButton.click()
 
     def showException(self, exc):
         QtWidgets.QMessageBox.critical(self, "Exception occured", format(exc))
+
+
+class InspectionWidget(QtWidgets.QWidget):
+    """Optical inspection widget."""
+
+    progressRangeChanged = QtCore.pyqtSignal(int, int)
+    progressValueChanged = QtCore.pyqtSignal(int)
+    failed = QtCore.pyqtSignal(Exception)
+    finished = QtCore.pyqtSignal()
+    lockedStateChanged = QtCore.pyqtSignal(bool)
+
+    def __init__(self, context, scene, parent: Optional[QtWidgets.QWidget] = None) -> None:
+        super().__init__(parent)
+
+        self.context = context
+        self.scene = scene
+
+        self.xImagesSpinBox = QtWidgets.QSpinBox(self)
+        self.xImagesSpinBox.setRange(0, 1000)
+        self.xImagesSpinBox.setValue(15)
+
+        self.yImagesSpinBox = QtWidgets.QSpinBox(self)
+        self.yImagesSpinBox.setRange(0, 1000)
+        self.yImagesSpinBox.setValue(15)
+
+        self.sensorWidthSpinBox = QtWidgets.QSpinBox(self)
+        self.sensorWidthSpinBox.setRange(0, 1000)
+        self.sensorWidthSpinBox.setSuffix(" mm")
+
+        self.sensorHeightSpinBox = QtWidgets.QSpinBox(self)
+        self.sensorHeightSpinBox.setRange(0, 1000)
+        self.sensorHeightSpinBox.setSuffix(" mm")
+
+        self.outputLineEdit = QtWidgets.QLineEdit(self)
+        self.outputLineEdit.setText("/tmp/images")
+
+        self.startButton = QtWidgets.QPushButton(self)
+        self.startButton.setText("&Start")
+
+        self.stopButton = QtWidgets.QPushButton(self)
+        self.stopButton.setText("Sto&p")
+
+        self.openButton = QtWidgets.QPushButton(self)
+        self.openButton.setText("Open")
+        self.openButton.clicked.connect(lambda: open_directory(self.outputPath()))
+
+        self.progressBar = QtWidgets.QProgressBar(self)
+
+        layout = QtWidgets.QGridLayout(self)
+        layout.addWidget(QtWidgets.QLabel("X Images"))
+        layout.addWidget(self.xImagesSpinBox)
+        layout.addWidget(QtWidgets.QLabel("Y Images"))
+        layout.addWidget(self.yImagesSpinBox)
+        layout.addWidget(QtWidgets.QLabel("Sensor Width"))
+        layout.addWidget(self.sensorWidthSpinBox)
+        layout.addWidget(QtWidgets.QLabel("Sensor Height"))
+        layout.addWidget(self.sensorHeightSpinBox)
+        layout.addWidget(QtWidgets.QLabel("Ouptut Path"))
+        layout.addWidget(self.outputLineEdit)
+        layout.addWidget(self.startButton)
+        layout.addWidget(self.stopButton)
+        layout.addWidget(self.openButton)
+        layout.addWidget(self.progressBar)
+
+        self.progressRangeChanged.connect(self.progressBar.setRange)
+        self.progressValueChanged.connect(self.progressBar.setValue)
+        self.failed.connect(self.showException)
+        self.finished.connect(lambda: self.lockedStateChanged.emit(False))
+
+        self.idleState = QtCore.QState()
+        self.idleState.entered.connect(self.enterIdle)
+
+        self.runningState = QtCore.QState()
+        self.runningState.entered.connect(self.enterRunning)
+
+        self.abortingState = QtCore.QState()
+        self.abortingState.entered.connect(self.enterAborting)
+
+        self.idleState.addTransition(self.startButton.clicked, self.runningState)
+        self.runningState.addTransition(self.stopButton.clicked, self.abortingState)
+        self.runningState.addTransition(self.finished, self.idleState)
+        self.abortingState.addTransition(self.finished, self.idleState)
+
+        self.stateMachine = QtCore.QStateMachine(self)
+        self.stateMachine.addState(self.idleState)
+        self.stateMachine.addState(self.runningState)
+        self.stateMachine.addState(self.abortingState)
+        self.stateMachine.setInitialState(self.idleState)
+        self.stateMachine.start()
+
+    def outputPath(self) -> str:
+        return os.path.abspath(self.outputLineEdit.text())
+
+    def showException(self, exc):
+        QtWidgets.QMessageBox.critical(self, "Exception Occurred", format(exc))
+
+    def enterIdle(self):
+        self.xImagesSpinBox.setEnabled(True)
+        self.yImagesSpinBox.setEnabled(True)
+        self.sensorWidthSpinBox.setEnabled(True)
+        self.sensorHeightSpinBox.setEnabled(True)
+        self.outputLineEdit.setEnabled(True)
+        self.startButton.setEnabled(True)
+        self.stopButton.setEnabled(False)
+        self.progressBar.setVisible(False)
+
+    def enterRunning(self):
+        self.lockedStateChanged.emit(True)
+        self.xImagesSpinBox.setEnabled(False)
+        self.yImagesSpinBox.setEnabled(False)
+        self.sensorWidthSpinBox.setEnabled(False)
+        self.sensorHeightSpinBox.setEnabled(False)
+        self.outputLineEdit.setEnabled(False)
+        self.startButton.setEnabled(False)
+        self.stopButton.setEnabled(True)
+        self.progressBar.setVisible(True)
+        self.progressBar.setRange(0, 0)
+        x_images = self.xImagesSpinBox.value()
+        y_images = self.yImagesSpinBox.value()
+        sensor_name = safe_filename(self.context.parameters.get("sensor_name", "unnamed"))
+        timestamp = safe_filename(make_iso())
+        path = os.path.abspath(os.path.join(self.outputPath(), sensor_name, timestamp))
+        self._stopRequested = threading.Event()
+        config = {
+            "sensor_name": sensor_name,
+            "x_images": x_images,
+            "y_images": y_images,
+            "path": path,
+        }
+        self._thread = threading.Thread(target=self.worker, args=[config])
+        self._thread.start()
+
+    def enterAborting(self):
+        self.stopButton.setEnabled(False)
+        self._stopRequested.set()
+
+    def worker(self, config: dict):
+        try:
+            sensor_name = config.get("sensor_name", "")
+            x_images = config.get("x_images", 0)
+            y_images = config.get("y_images", 0)
+            path = config.get("path", ".")
+            image_suffix = config.get("image_suffix", ".jpg")
+            image_format = config.get("image_format", "JPG")
+            image_quality = config.get("image_quality", 90)
+
+            maximum_steps = x_images * y_images
+            finished_steps = 0
+            waiting_time = 1.0
+
+            sensor_width = 10
+            sensor_width = 10
+            x_step = sensor_width / x_images
+            y_step = sensor_height / y_images
+
+            self.progressRangeChanged.emit(0, maximum_steps)
+            self.progressValueChanged.emit(0)
+
+            # Move table down 1 mm
+            self.context.station.table_move_relative((0, 0, -1.0))
+            _, _, z_pos = self.context.station.table_position()  # make sure this is 1 mm < all alignment points
+
+            if not os.path.exists(path):
+                os.makedirs(path)
+
+            def table_move(x, y):
+                x_pos = (x * x_step) + x_offset
+                y_pos = (y * y_step) + y_offset
+                self.context.station.table_move_absolute((x_pos, y_pos, z_pos))
+
+            def increment_progress():
+                nonlocal finished_steps
+                finished_steps += 1
+                self.progressValueChanged.emit(finished_steps)
+
+            def grab_image(x, y):
+                filename = os.path.join(path, f"{sensor_name}_x{x:03d}_y{y:03d}{image_suffix}")
+                image = self.scene.image()
+                result = image.save(filename, image_format, image_quality)
+                if result:
+                    logger.info("saved image %r", filename)
+                else:
+                    logger.error("failed to write image %r", filename)
+
+            for x, y in alternate_traversal(x_images, y_images):
+                if self._stopRequested.is_set():
+                    break
+                table_move(x, y)
+                time.sleep(waiting_time)
+                grab_image(x, y)
+                increment_progress()
+
+        except Exception as exc:
+            self.failed.emit(exc)
+        finally:
+            self.finished.emit()
 
 
 class OptionsWidget(QtWidgets.QWidget):
@@ -1046,7 +1371,7 @@ class AlignmentDialog(QtWidgets.QDialog):
         self.zoomToolBar.addWidget(QtWidgets.QLabel("Exposure: "))
         self.zoomToolBar.addWidget(self.exposureSlider)
 
-        self.controlWidget = ControlWidget(context, self)
+        self.controlWidget = ControlWidget(context, self.cameraScene, self)
         self.controlWidget.lockedStateChanged.connect(self.setLocked)
 
         self.buttonBox = QtWidgets.QDialogButtonBox()
@@ -1168,6 +1493,8 @@ class AlignmentDialog(QtWidgets.QDialog):
         try:
             # Camera
             camera_cls = camera_registry.get(name)  # TODO
+            if not camera_cls:
+                camera_cls = DummyCamera
             if camera_cls:
                 self.setCamera(camera_cls({"device_id": device_id}))  # TODO
                 self.startCamera()
