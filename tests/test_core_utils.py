@@ -10,7 +10,6 @@ from sqc.core.utils import (
     parse_strips,
     verify_position,
     alternate_traversal,
-    movement_vectors,
 )
 
 

@@ -545,7 +545,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
             progress = QtWidgets.QProgressDialog("Auto Start Measurements...", "Cancel", 0, 5, self)
             progress.setValue(0)
-            progress.setWindowModality(True)
 
             def updateProgress():
                 counter = progress.value() + 1
