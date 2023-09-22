@@ -676,6 +676,10 @@ class Station:
         table = self.get_resource("table")
         Table(table).move_relative(position)
 
+    def table_move_absolute(self, position: Tuple[float, float, float]) -> None:
+        table = self.get_resource("table")
+        Table(table).move_absolute(position)
+
     def table_safe_move_absolute(self, position: Tuple[float, float, float]) -> None:
         table = self.get_resource("table")
         Table(table).safe_move_absolute(position)

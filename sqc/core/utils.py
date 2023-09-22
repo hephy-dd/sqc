@@ -1,4 +1,7 @@
+import os
 import re
+import subprocess
+import sys
 from typing import Generator, List, Tuple
 
 from comet.utils import inverse_square
@@ -13,6 +16,7 @@ __all__ = [
     "parse_strips",
     "verify_position",
     "alternate_traversal",
+    "open_directory",
 ]
 
 
@@ -95,3 +99,15 @@ def alternate_traversal(x_steps: int, y_steps: int) -> Generator[Tuple[int, int]
         else:  # odd rows
             for x in reversed(range(x_steps)):
                 yield x, y
+
+
+def open_directory(path: str) -> None:
+    try:
+        if sys.platform == "win32":
+            os.startfile(path)
+        elif sys.platform == "darwin":
+            subprocess.check_call(["open", "--", path])
+        else:  # "linux" and possibly "freebsd" etc.
+            subprocess.check_call(["xdg-open", path])
+    except Exception as exc:
+        raise RuntimeError("Failed to open directory: {path!r}") from exc
