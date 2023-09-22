@@ -4,7 +4,14 @@ from typing import List, Tuple
 
 from PyQt5 import QtCore
 
-from .core.resource import Resource
+# Instrument drivers
+from comet.driver.corvus import Venus1
+from comet.driver.hephy import BrandBox, EnvironBox
+from comet.driver.keithley import K708B, K2410, K2657A, K6514, K6517B
+from comet.driver.keysight import E4980A
+from comet.driver.marzhauser import Tango
+
+from .core.resource import driver_registry, Resource
 
 __all__ = ["Settings"]
 
@@ -27,6 +34,18 @@ DEFAULT_RESOURCES = {
     "table": {"model": "Venus1", "models": ["Venus1"]},
     "tango": {"model": "TANGO", "models": ["TANGO"]},
 }
+
+# Register instrument drivers
+driver_registry["BrandBox"] = BrandBox
+driver_registry["EnvironBox"] = EnvironBox
+driver_registry["K708B"] = K708B
+driver_registry["K2410"] = K2410
+driver_registry["K2657A"] = K2657A
+driver_registry["K6514"] = K6514
+driver_registry["K6517B"] = K6517B
+driver_registry["E4980A"] = E4980A
+driver_registry["Venus1"] = Venus1
+driver_registry["TANGO"] = Tango
 
 
 class Settings:
