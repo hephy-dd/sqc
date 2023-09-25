@@ -4,7 +4,9 @@ import threading
 import time
 from typing import Optional
 
-from PyQt5 import QtCore, QtWidgets
+from comet.utils import ureg
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from comet.utils import make_iso, safe_filename
 
@@ -32,6 +34,7 @@ class InspectionDialog(QtWidgets.QDialog):
         self.context = context
         self.scene = scene
 
+        self._stopRequested = threading.Event()
         self._thread = None
 
         # Images
@@ -207,6 +210,12 @@ class InspectionDialog(QtWidgets.QDialog):
         except Exception as exc:
             self.showException(exc)
 
+    def currentImage(self) -> QtGui.QImage:
+        return self.scene.image()
+
+    def isAbortRequested(self) -> bool:
+        return self._stopRequested.is_set()
+
     def isAutoStartEnabled(self) -> bool:
         return self.autoStartMeasurementCheckBox.isChecked()  #TODO thread safe?
 
@@ -238,8 +247,12 @@ class InspectionDialog(QtWidgets.QDialog):
         y_images = self.yImagesSpinBox.value()
         sensor_name = self.context.parameters.get("sensor_name", "unnamed")
         timestamp = make_iso()
-        path = os.path.abspath(safe_filename(os.path.join(self.outputPath(), sensor_name, "inspection", timestamp)))
-        self._stopRequested = threading.Event()
+        path = os.path.abspath(os.path.join(
+            self.outputPath(),
+            safe_filename(sensor_name),
+            "images",
+            safe_filename(timestamp),
+        ))
         config = {
             "sensor_name": sensor_name,
             "x_images": self.xImages(),
@@ -248,6 +261,7 @@ class InspectionDialog(QtWidgets.QDialog):
             "sensor_height": self.sensorHeight(),
             "path": path,
         }
+        self._stopRequested = threading.Event()
         self._thread = threading.Thread(target=self.worker, args=[config])
         self._thread.start()
 
@@ -266,8 +280,8 @@ class InspectionDialog(QtWidgets.QDialog):
             sensor_name = config.get("sensor_name", "")
             x_images = config.get("x_images", 0)
             y_images = config.get("y_images", 0)
-            sensor_width = config.get("sensor_width", 0)
-            sensor_height = config.get("sensor_height", 0)
+            sensor_width = (ureg("mm") * config.get("sensor_width", 0)).to("um").m
+            sensor_height = (ureg("mm") * config.get("sensor_height", 0)).to("um").m
             path = config.get("path", ".")
             image_suffix = config.get("image_suffix", ".jpg")
             image_format = config.get("image_format", "JPG")
@@ -276,10 +290,9 @@ class InspectionDialog(QtWidgets.QDialog):
             maximum_steps = x_images * y_images
             finished_steps = 0
 
-            x_offset = 0
-            y_offset = 0
-            x_step_size = sensor_width / x_images
-            y_step_size = sensor_height / y_images
+            # Calculate offset for sectors
+            x_step_size = sensor_width / max(x_images - 1, 0)
+            y_step_size = sensor_height / max(y_images - 1, 0)
 
             self.progressRangeChanged.emit(0, maximum_steps + 1)
             self.progressValueChanged.emit(0)
@@ -291,42 +304,58 @@ class InspectionDialog(QtWidgets.QDialog):
             if not os.path.exists(path):
                 os.makedirs(path)
 
-            def table_move(x, y):
-                x_pos = (x * x_step_size) + x_offset
-                y_pos = (y * y_step_size) + y_offset
-                _, _, z_pos = start_position
+            def table_move_to_sector(x: int, y: int):
+                """Move table to sector by x, y index relative to start position."""
+                x_pos, y_pos, z_pos = start_position
+                x_pos += (x * x_step_size)
+                y_pos += (y * y_step_size)
+                logger.info("move table to: %r", (x_pos, y_pos, z_pos))
                 self.context.station.table_move_absolute((x_pos, y_pos, z_pos))
 
-            def table_return():
+            def table_return_to_start():
+                """Return table to start position."""
                 x_pos, y_pos, z_pos = start_position
+                logger.info("move table to: %r", (x_pos, y_pos, z_pos))
                 self.context.station.table_move_absolute((x_pos, y_pos, z_pos))
+
+            def apply_waiting_time():
+                time.sleep(self.waitingTime())
 
             def increment_progress():
                 nonlocal finished_steps
                 finished_steps += 1
                 self.progressValueChanged.emit(finished_steps)
 
-            def grab_image(x, y):
+            def grab_image(x: int, y: int):
                 filename = os.path.join(path, f"{sensor_name}_x{x:03d}_y{y:03d}{image_suffix}")
-                image = self.scene.image()
+                image = self.currentImage()
                 result = image.save(filename, image_format, image_quality)
                 if result:
                     logger.info("saved image %r", filename)
                 else:
                     logger.error("failed to write image %r", filename)
 
+            # Traverse the sensor in zig-zag
             for x, y in alternate_traversal(x_images, y_images):
-                if self._stopRequested.is_set():
+
+                if self.isAbortRequested():
                     break
-                table_move(x, y)
-                time.sleep(self.waitingTime())
+
+                table_move_to_sector(x, y)
+                apply_waiting_time()
+
+                if self.isAbortRequested():
+                    break
+
                 grab_image(x, y)
                 increment_progress()
 
-            table_return()
-            increment_progress()
+            # Return table to start position (testing)
+            if not self.isAbortRequested():
+                table_return_to_start()
+                increment_progress()
 
-            if not self._stopRequested.is_set():
+            if not self.isAbortRequested():
                 if self.isAutoStartEnabled():
                     self.context.auto_start_measurement = True
                     self.closeRequested.emit()

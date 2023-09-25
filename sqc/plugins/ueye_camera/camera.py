@@ -1,6 +1,7 @@
 import ctypes
 import logging
 import threading
+import time
 
 import numpy as np
 from pyueye import ueye
@@ -319,6 +320,7 @@ class UEyeCamera(BaseCamera):
         self.frame_thread = threading.Thread(target=self.capture_frames)
 
     def start(self) -> None:
+        self.free_running = True
         self.camera.capture_video()
         self.frame_thread.start()
 
@@ -342,7 +344,9 @@ class UEyeCamera(BaseCamera):
                 )
                 if ret == ueye.IS_SUCCESS:
                     image_data = ImageData(self.camera.handle(), img_buffer)
-                    self.handle_frame(image_data.as_1d_image())
+                    frame_data = image_data.as_1d_image()
                     image_data.unlock()
+                    self.handle_frame(frame_data)
             except Exception as exc:
                 logging.exception(exc)
+                time.sleep(1.0)  # throttle in case of error
