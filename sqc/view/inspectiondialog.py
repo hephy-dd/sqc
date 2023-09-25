@@ -291,8 +291,8 @@ class InspectionDialog(QtWidgets.QDialog):
             finished_steps = 0
 
             # Calculate offset for sectors
-            x_step_size = sensor_width / max(x_images - 1, 0)
-            y_step_size = sensor_height / max(y_images - 1, 0)
+            x_step_size = sensor_width / max(x_images - 1, 1)
+            y_step_size = sensor_height / max(y_images - 1, 1)
 
             self.progressRangeChanged.emit(0, maximum_steps + 1)
             self.progressValueChanged.emit(0)
