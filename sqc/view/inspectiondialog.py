@@ -40,11 +40,11 @@ class InspectionDialog(QtWidgets.QDialog):
         # Images
 
         self.xImagesSpinBox = QtWidgets.QSpinBox(self)
-        self.xImagesSpinBox.setRange(0, 1000)
+        self.xImagesSpinBox.setRange(1, 1000)
         self.xImagesSpinBox.setValue(15)
 
         self.yImagesSpinBox = QtWidgets.QSpinBox(self)
-        self.yImagesSpinBox.setRange(0, 1000)
+        self.yImagesSpinBox.setRange(1, 1000)
         self.yImagesSpinBox.setValue(15)
 
         self.imagesGroupBox = QtWidgets.QGroupBox(self)
