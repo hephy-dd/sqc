@@ -278,22 +278,27 @@ class InspectionDialog(QtWidgets.QDialog):
 
             x_offset = 0
             y_offset = 0
-            x_step = sensor_width / x_images
-            y_step = sensor_height / y_images
+            x_step_size = sensor_width / x_images
+            y_step_size = sensor_height / y_images
 
-            self.progressRangeChanged.emit(0, maximum_steps)
+            self.progressRangeChanged.emit(0, maximum_steps + 1)
             self.progressValueChanged.emit(0)
 
             # Move table down 1 mm
             # self.context.station.table_move_relative((0, 0, -1.0))
-            _, _, z_pos = self.context.station.table_position()  # make sure this is 1 mm < all alignment points
+            start_position = self.context.station.table_position()  # make sure this is 1 mm < all alignment points
 
             if not os.path.exists(path):
                 os.makedirs(path)
 
             def table_move(x, y):
-                x_pos = (x * x_step) + x_offset
-                y_pos = (y * y_step) + y_offset
+                x_pos = (x * x_step_size) + x_offset
+                y_pos = (y * y_step_size) + y_offset
+                _, _, z_pos = start_position
+                self.context.station.table_move_absolute((x_pos, y_pos, z_pos))
+
+            def table_return():
+                x_pos, y_pos, z_pos = start_position
                 self.context.station.table_move_absolute((x_pos, y_pos, z_pos))
 
             def increment_progress():
@@ -318,10 +323,14 @@ class InspectionDialog(QtWidgets.QDialog):
                 grab_image(x, y)
                 increment_progress()
 
+            table_return()
+            increment_progress()
+
             if not self._stopRequested.is_set():
                 if self.isAutoStartEnabled():
                     self.context.auto_start_measurement = True
                     self.closeRequested.emit()
+
         except Exception as exc:
             self.failed.emit(exc)
         finally:
