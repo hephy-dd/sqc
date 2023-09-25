@@ -207,6 +207,9 @@ class InspectionDialog(QtWidgets.QDialog):
         except Exception as exc:
             self.showException(exc)
 
+    def isAutoStartEnabled(self) -> bool:
+        return self.autoStartMeasurementCheckBox.isChecked()  #TODO thread safe?
+
     def showException(self, exc):
         logger.exception(exc)
         QtWidgets.QMessageBox.critical(self, "Exception Occurred", format(exc))
@@ -235,10 +238,14 @@ class InspectionDialog(QtWidgets.QDialog):
         y_images = self.yImagesSpinBox.value()
         sensor_name = self.context.parameters.get("sensor_name", "unnamed")
         timestamp = make_iso()
-        path = os.path.abspath(safe_filename(os.path.join(self.outputPath(), sensor_name, timestamp)))
+        path = os.path.abspath(safe_filename(os.path.join(self.outputPath(), sensor_name, "inspection", timestamp)))
         self._stopRequested = threading.Event()
         config = {
             "sensor_name": sensor_name,
+            "x_images": self.xImages(),
+            "y_images": self.yImages(),
+            "sensor_width": self.sensorWidth(),
+            "sensor_height": self.sensorHeight(),
             "path": path,
         }
         self._thread = threading.Thread(target=self.worker, args=[config])
@@ -257,10 +264,10 @@ class InspectionDialog(QtWidgets.QDialog):
     def worker(self, config: dict):
         try:
             sensor_name = config.get("sensor_name", "")
-            x_images = self.xImages()
-            y_images = self.yImages()
-            sensor_width = self.sensorWidth()
-            sensor_height = self.sensorHeight()
+            x_images = config.get("x_images", 0)
+            y_images = config.get("y_images", 0)
+            sensor_width = config.get("sensor_width", 0)
+            sensor_height = config.get("sensor_height", 0)
             path = config.get("path", ".")
             image_suffix = config.get("image_suffix", ".jpg")
             image_format = config.get("image_format", "JPG")
@@ -278,7 +285,7 @@ class InspectionDialog(QtWidgets.QDialog):
             self.progressValueChanged.emit(0)
 
             # Move table down 1 mm
-            self.context.station.table_move_relative((0, 0, -1.0))
+            # self.context.station.table_move_relative((0, 0, -1.0))
             _, _, z_pos = self.context.station.table_position()  # make sure this is 1 mm < all alignment points
 
             if not os.path.exists(path):
@@ -312,7 +319,7 @@ class InspectionDialog(QtWidgets.QDialog):
                 increment_progress()
 
             if not self._stopRequested.is_set():
-                if self.autoStartMeasurementCheckBox.isChecked():
+                if self.isAutoStartEnabled():
                     self.context.auto_start_measurement = True
                     self.closeRequested.emit()
         except Exception as exc:
