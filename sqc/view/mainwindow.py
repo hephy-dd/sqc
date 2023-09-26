@@ -413,8 +413,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def showAlignmentDialog(self) -> None:
         self.dashboardWidget.updateContext()
+        name = self.dashboardWidget.sensorProfileName()
         dialog = AlignmentDialog(self.context)
         try:
+            dialog.setSensorName(name)
             dialog.setPadfile(self.context.padfile)
             dialog.readSettings()
             dialog.setLightsOn()
