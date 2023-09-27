@@ -1,11 +1,46 @@
 import time
+from collections import deque
 from typing import Callable, Dict
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-__all__ = ["camera_registry", "CameraScene", "CameraView"]
+__all__ = ["CameraScene", "CameraView"]
 
-camera_registry: Dict[str, Callable] = {}
+
+class FPSCounter:
+    def __init__(self, averaging_period=5.0):
+        """
+        Initialize the FPS counter.
+
+        :param averaging_period: Time period (in seconds) over which to average the FPS.
+        """
+        self.averaging_period = averaging_period
+        self.timestamps = deque()
+
+    def tick(self):
+        """
+        Call this method once for each frame.
+        """
+        current_time = time.time()
+        self.timestamps.append(current_time)
+
+        # Remove timestamps outside of the averaging period
+        while self.timestamps and (current_time - self.timestamps[0]) > self.averaging_period:
+            self.timestamps.popleft()
+
+    @property
+    def fps(self) -> float:
+        """
+        Get the current average FPS.
+
+        :return: Average FPS over the defined period.
+        """
+        if not self.timestamps:
+            return 0.0
+        time_elapsed = self.timestamps[-1] - self.timestamps[0]
+        if time_elapsed == 0:
+            return 0.0
+        return len(self.timestamps) / time_elapsed
 
 
 class CameraScene(QtWidgets.QGraphicsScene):
@@ -14,12 +49,11 @@ class CameraScene(QtWidgets.QGraphicsScene):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
-        self._timestamp = time.monotonic()
         self._image = QtGui.QImage()
         self._factor = 1.0
         self._centerX = 0.5
         self._centerY = 0.5
-        self._fps = 0
+        self.fps_counter = FPSCounter()
         self.imageChanged.connect(self.update)
 
     def image(self) -> QtGui.QImage:
@@ -27,17 +61,8 @@ class CameraScene(QtWidgets.QGraphicsScene):
 
     def setImage(self, image: QtGui.QImage) -> None:
         self._image = image
-        self.updateFps()
+        self.fps_counter.tick()
         self.imageChanged.emit()
-
-    def updateFps(self):
-        t = time.monotonic()
-        try:
-            dt = t - self._timestamp
-        except ZeroDivisionError:
-            dt = 1.
-        self._fps = abs(1. / dt)
-        self._timestamp = t
 
     def factor(self) -> float:
         return self._factor
@@ -95,7 +120,7 @@ class CameraScene(QtWidgets.QGraphicsScene):
         painter.setPen(QtCore.Qt.yellow)
         # text
         pos = QtCore.QPoint(int(rect.x()) + 10, int(rect.y()) + 34)
-        painter.drawText(pos, f"{self._fps:.1f} fps")
+        painter.drawText(pos, f"{self.fps_counter.fps:.1f} fps")
 
 
 class CameraView(QtWidgets.QGraphicsView):
@@ -105,19 +130,18 @@ class CameraView(QtWidgets.QGraphicsView):
         self.setScene(scene)
         self.scene().setSceneRect(self.scene().itemsBoundingRect())
 
-    def createImage(self, data):
+    def createImage(self, image_data):
+        """Creates image from array in format RGB888."""
         return QtGui.QImage(
-            data,
-            data.shape[1],
-            data.shape[0],
-            data.strides[0],
+            image_data,
+            image_data.shape[1],
+            image_data.shape[0],
+            image_data.strides[0],
             QtGui.QImage.Format_RGB888,
         )
 
     def handle(self, image_data):
-        data = image_data.as_1d_image()
-        image_data.unlock()
         scene = self.scene()
         if scene:
-            image = self.createImage(data)
+            image = self.createImage(image_data)
             scene.setImage(image)

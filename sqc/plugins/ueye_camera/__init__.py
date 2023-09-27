@@ -1,7 +1,7 @@
 import logging
 
+from sqc.core.camera import camera_registry
 from sqc.plugins import Plugin
-from sqc.view.cameraview import camera_registry
 
 __all__ = ["UEyeCameraPlugin"]
 

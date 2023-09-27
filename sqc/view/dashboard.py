@@ -546,6 +546,12 @@ class DashboardWidget(QtWidgets.QWidget):
 
     # Sensor Type
 
+    def sensorProfile(self) -> dict:
+        return self.profileComboBox.currentData() or {}
+
+    def sensorProfileName(self) -> str:
+        return self.sensorProfile().get("name", "")
+
     def sensorCategory(self) -> str:
         data = self.profileComboBox.currentData() or {}
         return padfileCategory(data.get("padfile", ""))
@@ -559,13 +565,16 @@ class DashboardWidget(QtWidgets.QWidget):
         return data.get("padfile", "")
 
     def profileChanged(self, index: int) -> None:
-        if self.context.data:
+        alignment = Settings().alignment()
+        if (self.profileComboBoxPreviousIndex >= 0) and (self.context.data or alignment):
             name = self.profileComboBox.currentText()
-            result = QtWidgets.QMessageBox.question(self, "Change Sensor Profile", f"Do you want to change the sensor profile to \"{name}\" and clear current data?")
+            result = QtWidgets.QMessageBox.question(self, "Change Sensor Profile", f"Do you want to change the sensor profile to \"{name}\" and clear current alignment and data?")
             if result == QtWidgets.QMessageBox.No:
                 with QtCore.QSignalBlocker(self.profileComboBox):
                     self.profileComboBox.setCurrentIndex(self.profileComboBoxPreviousIndex)
                 return
+        if self.profileComboBoxPreviousIndex >= 0:
+            Settings().setAlignment([])
         self.profileComboBoxPreviousIndex = index
         self.reset()
 

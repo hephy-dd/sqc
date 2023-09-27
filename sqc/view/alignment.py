@@ -1,26 +1,33 @@
 import logging
 import random
+import threading
+import os
+import sys
+import time
+import subprocess
 from functools import partial
 from typing import Iterable, List, Optional, Tuple, Optional
 
+import numpy as np
+
 from comet.utils import ureg
-from PyQt5 import QtCore, QtWidgets
+
+from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..controller.needle import NeedleController
 from ..controller.table import TableController
+from ..core.camera import camera_registry, DummyCamera
 from ..core.geometry import Pad, Padfile, NeedlesGeometry
-from ..core.geometry import load as load_padfile
 from ..core.transformation import affine_transformation, transform
 from ..settings import Settings
 
 from .calibration import TableCalibrationDialog, NeedlesCalibrationDialog
 from .cameraview import CameraScene, CameraView
-from .cameraview import camera_registry
+from .inspectiondialog import InspectionDialog
 
 __all__ = ["AlignmentDialog"]
 
 logger = logging.getLogger(__name__)
-
 
 Position = Tuple[float, float, float]
 
@@ -192,9 +199,13 @@ class AlignmentController:
 class ControlWidget(QtWidgets.QTabWidget):
 
     lockedStateChanged = QtCore.pyqtSignal(bool)
+    closeRequested = QtCore.pyqtSignal()
 
-    def __init__(self, context, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, context, scene, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
+
+        self.context = context
+        self.scene = scene
 
         self.setCurrentPosition((0, 0, 0))
 
@@ -316,6 +327,10 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.saveButton.setEnabled(False)
         self.saveButton.clicked.connect(self.saveAlignment)
 
+        self.opticalInspectionButton = QtWidgets.QPushButton("Opt. Inspect.")
+        self.opticalInspectionButton.setEnabled(False)
+        self.opticalInspectionButton.clicked.connect(self.showInspectDialog)
+
         self.commandsGroupBox = QtWidgets.QGroupBox()
         self.commandsGroupBox.setTitle("Commands")
 
@@ -369,6 +384,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         alignmentLeftLayout.addWidget(self.assignButton)
         alignmentLeftLayout.addWidget(self.nextButton)
         alignmentLeftLayout.addWidget(self.saveButton)
+        alignmentLeftLayout.addWidget(self.opticalInspectionButton)
         alignmentLeftLayout.addStretch()
 
         alignmentCenterLayout = QtWidgets.QVBoxLayout()
@@ -520,10 +536,16 @@ class ControlWidget(QtWidgets.QTabWidget):
             for i, item in enumerate(self.alignmentController.items):
                 self.alignmentController.assignPosition(item, alignment[i])
             self.alignmentController.calculateMatrix()
-            self.contactButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
-            self.inspectButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
+        else:
+            self.resetAlignment()
         self.updateAlignmentButtons()
-        self.saveButton.setEnabled(False)
+        isAligned = self.alignmentController.isAligned()
+        self.contactButton.setEnabled(isAligned)
+        self.inspectButton.setEnabled(isAligned)
+        self.assignButton.setEnabled(not isAligned)
+        self.nextButton.setEnabled(not isAligned)
+        self.saveButton.setEnabled(not isAligned)
+        self.opticalInspectionButton.setEnabled(isAligned)
         self.resizeAlignmentTree()
 
     def addReferncePad(self, pad):
@@ -638,6 +660,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.contactButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.inspectButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.saveButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
+        self.opticalInspectionButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.nextButton.setEnabled(len(self.alignmentController.assignedItems()) < 3)
         if self.alignmentController.isAligned():
             self.setAlignmentHint("Click <b>Save</b> to accept alignment.")
@@ -664,6 +687,7 @@ class ControlWidget(QtWidgets.QTabWidget):
             self.contactButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
             self.inspectButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
             self.saveButton.setEnabled(False)
+            self.opticalInspectionButton.setEnabled(False)
             self.assignButton.setEnabled(True)
             self.nextButton.setEnabled(False)
             item = self.alignmentController.nextItem()
@@ -677,6 +701,7 @@ class ControlWidget(QtWidgets.QTabWidget):
 
     def saveAlignment(self):
         self.saveButton.setEnabled(False)
+        self.opticalInspectionButton.setEnabled(True)
         self.nextButton.setEnabled(False)
         self.assignButton.setEnabled(False)
         try:
@@ -691,8 +716,10 @@ class ControlWidget(QtWidgets.QTabWidget):
     def updateAlignmentButtons(self):
         item = self.alignmentTreeWidget.currentItem()
         self.inspectReferenceButton.setEnabled(item is not None)
+        self.opticalInspectionButton.setEnabled(self.alignmentController.isAligned())
+        self.nextButton.setEnabled(not self.alignmentController.isAligned())
         self.saveButton.setEnabled(self.alignmentController.isAligned())
-        self.nextButton.setEnabled(self.alignmentController.nextItem() is not None)
+        self.inspectButton.setEnabled(self.alignmentController.isAligned())
 
     def showSelectPad(self):
         dialog = SelectPadDialog(self)
@@ -796,15 +823,13 @@ class ControlWidget(QtWidgets.QTabWidget):
             self.tableYLabel.setText("n/a")
             self.tableZLabel.setText("n/a")
 
-    # def updateNeedlesPosition(self, position: float):
-    #     logger.info("needles position changed: %s", position)
-    #     x = (ureg("um") * position).to("mm").m
-    #     try:
-    #         self.needlesXLabel.setText(f"{x:.3f} mm")
-    #     except Exception as exc:
-    #         logger.exception(exc)
-    #         self.needlesXLabel.setText("n/a")
-
+    def showInspectDialog(self) -> None:
+        dialog = InspectionDialog(self.context, self.scene, self)
+        dialog.closeRequested.connect(self.closeRequested)
+        dialog.closeRequested.connect(dialog.close)
+        dialog.readSettings()
+        dialog.exec()
+        dialog.writeSettings()
 
     def showException(self, exc):
         QtWidgets.QMessageBox.critical(self, "Exception occured", format(exc))
@@ -1031,10 +1056,14 @@ class AlignmentDialog(QtWidgets.QDialog):
         self.zoomActionGroup.addAction(self.zoomAction2x)
         self.zoomActionGroup.addAction(self.zoomAction3x)
 
+        self.sensorNameLabel = QtWidgets.QLabel()
+        self.sensorNameLabel.setContentsMargins(0, 0, 20, 0)
+
         self.needlePitchLabel = QtWidgets.QLabel()
 
         self.zoomToolBar = QtWidgets.QToolBar()
         self.zoomToolBar.setOrientation(QtCore.Qt.Horizontal)
+        self.zoomToolBar.addWidget(self.sensorNameLabel)
         self.zoomToolBar.addWidget(self.needlePitchLabel)
         spacer = QtWidgets.QWidget(self.zoomToolBar)
         spacer.setSizePolicy(QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Expanding)
@@ -1046,8 +1075,9 @@ class AlignmentDialog(QtWidgets.QDialog):
         self.zoomToolBar.addWidget(QtWidgets.QLabel("Exposure: "))
         self.zoomToolBar.addWidget(self.exposureSlider)
 
-        self.controlWidget = ControlWidget(context, self)
+        self.controlWidget = ControlWidget(context, self.cameraScene, self)
         self.controlWidget.lockedStateChanged.connect(self.setLocked)
+        self.controlWidget.closeRequested.connect(self.close)
 
         self.buttonBox = QtWidgets.QDialogButtonBox()
         self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Close)
@@ -1090,6 +1120,9 @@ class AlignmentDialog(QtWidgets.QDialog):
             pitch = padfile.properties.get("pitch")
             if pitch:
                 self.needlePitchLabel.setText(f"Needle pitch: {pitch} um")
+
+    def setSensorName(self, name: str) -> None:
+        self.sensorNameLabel.setText(f"Sensor: {name}")
 
     def updateCameraZoom(self, state):
         action = self.zoomActionGroup.checkedAction()
@@ -1167,7 +1200,7 @@ class AlignmentDialog(QtWidgets.QDialog):
         settings.endGroup()
         try:
             # Camera
-            camera_cls = camera_registry.get(name)  # TODO
+            camera_cls = camera_registry.get(name, DummyCamera)  # TODO
             if camera_cls:
                 self.setCamera(camera_cls({"device_id": device_id}))  # TODO
                 self.startCamera()

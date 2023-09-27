@@ -8,18 +8,9 @@ from typing import List, Type, Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-# Instrument drivers
-from comet.driver.corvus import Venus1
-from comet.driver.hephy import BrandBox, EnvironBox
-from comet.driver.keithley import K708B, K2410, K2657A, K6514, K6517B
-from comet.driver.keysight import E4980A
-from comet.driver.marzhauser import Tango
-
 from . import __version__
 from .context import Context
 from .station import Station
-
-from .core.resource import driver_registry
 
 from .view.mainwindow import MainWindow
 
@@ -42,18 +33,6 @@ ENABLED_PLUGINS: List[Type[Plugin]] = [
 ]
 
 logger = logging.getLogger()
-
-# Register instrument drivers
-driver_registry["BrandBox"] = BrandBox
-driver_registry["EnvironBox"] = EnvironBox
-driver_registry["K708B"] = K708B
-driver_registry["K2410"] = K2410
-driver_registry["K2657A"] = K2657A
-driver_registry["K6514"] = K6514
-driver_registry["K6517B"] = K6517B
-driver_registry["E4980A"] = E4980A
-driver_registry["Venus1"] = Venus1
-driver_registry["TANGO"] = Tango
 
 
 def parse_args() -> argparse.Namespace:

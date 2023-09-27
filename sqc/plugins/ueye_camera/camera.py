@@ -1,8 +1,12 @@
 import ctypes
-from threading import Thread
+import logging
+import threading
+import time
 
 import numpy as np
 from pyueye import ueye
+
+from sqc.core.camera import Camera as BaseCamera
 
 __all__ = ["UEyeCamera"]
 
@@ -135,44 +139,6 @@ class ImageData:
 
     def unlock(self):
         check(ueye.is_UnlockSeqBuf(self.h_cam, self.img_buff.mem_id, self.img_buff.mem_ptr))
-
-
-class FrameThread(Thread):
-
-    def __init__(self, camera):
-        super().__init__()
-        self.timeout = 1000
-        self.cam = camera
-        self.running = True
-        self.frame_handlers = []
-        self.exception_handlers = []
-
-    def add_frame_handler(self, handler):
-        self.frame_handlers.append(handler)
-
-    def add_exception_handler(self, handler):
-        self.exception_handlers.append(handler)
-
-    def run(self):
-        while self.running:
-            try:
-                img_buffer = ImageBuffer()
-                ret = ueye.is_WaitForNextImage(
-                    self.cam.handle(), self.timeout, img_buffer.mem_ptr, img_buffer.mem_id
-                )
-                if ret == ueye.IS_SUCCESS:
-                    self.notify(ImageData(self.cam.handle(), img_buffer))
-            except Exception as exc:
-                for handler in self.exception_handlers:
-                    handler(exc)
-
-    def notify(self, image_data):
-        for handler in self.frame_handlers:
-            handler(image_data)
-
-    def stop(self):
-        self.cam.stop_video()
-        self.running = False
 
 
 class Camera:
@@ -341,28 +307,46 @@ class Camera:
         self.set_auto_parameter(ueye.IS_SET_AUTO_BRIGHT_AOI)
 
 
-class UEyeCamera:
+class UEyeCamera(BaseCamera):
 
-    def __init__(self, config):
+    def __init__(self, config) -> None:
+        super().__init__(config)
+        self.free_running: bool = False
+        self.timeout: int = 1000
         self.camera = Camera(config.get("device_id", 0))
         self.camera.init()
         self.camera.configure()
         self.camera.alloc()
-        self.frame_thread = FrameThread(self.camera)
+        self.frame_thread = threading.Thread(target=self.capture_frames)
 
-    def start(self):
+    def start(self) -> None:
+        self.free_running = True
         self.camera.capture_video()
         self.frame_thread.start()
 
-    def stop(self):
-        self.frame_thread.stop()
+    def stop(self) -> None:
+        self.camera.stop_video()
+        self.free_running = False
 
-    def set_exposure(self, exposure):
+    def set_exposure(self, exposure: float) -> None:
         self.camera.set_exposure(exposure)
 
-    def add_frame_handler(self, handler):
-        self.frame_thread.add_frame_handler(handler)
-
-    def shutdown(self):
-        self.frame_thread.stop()
+    def shutdown(self) -> None:
+        self.free_running = False
         self.camera.exit()
+
+    def capture_frames(self) -> None:
+        while self.free_running:
+            try:
+                img_buffer = ImageBuffer()
+                ret = ueye.is_WaitForNextImage(
+                    self.camera.handle(), self.timeout, img_buffer.mem_ptr, img_buffer.mem_id
+                )
+                if ret == ueye.IS_SUCCESS:
+                    image_data = ImageData(self.camera.handle(), img_buffer)
+                    frame_data = image_data.as_1d_image()
+                    image_data.unlock()
+                    self.handle_frame(frame_data)
+            except Exception as exc:
+                logging.exception(exc)
+                time.sleep(1.0)  # throttle in case of error

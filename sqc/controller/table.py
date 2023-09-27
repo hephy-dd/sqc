@@ -45,6 +45,13 @@ class Table:  # TODO
         self.driver.rmove(x, y, z)  # non blocking
         self.wait_movement_finished(position_changed)
 
+    def move_absolute(self, position, position_changed: Optional[Callable] = None) -> None:
+        if not self.is_calibrated():
+            raise RuntimeError("Table requires calibration.")
+        x, y, z = position
+        self.driver.move(x, y, z)  # non blocking
+        self.wait_movement_finished(position_changed)
+
     def safe_move_absolute(self, position, position_changed: Optional[Callable] = None) -> None:
         if not self.is_calibrated():
             raise RuntimeError("Table requires calibration.")

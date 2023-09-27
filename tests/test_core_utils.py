@@ -9,6 +9,7 @@ from sqc.core.utils import (
     parse_strip_expression,
     parse_strips,
     verify_position,
+    alternate_traversal,
 )
 
 
@@ -81,3 +82,21 @@ def test_verify_position():
     assert verify_position([-1, -3, -4], [0, -4, -3.5], 1)
     assert not verify_position([1.3, 2.4, 3.1], [1.7, 2.4, 3.1], 0.25)
     assert not verify_position([1.3, 2.4, 3.1], [1.7, 2.4, 2.8], 0.25)
+
+
+def test_alternate_traversal():
+    # Test a 3x2 grid
+    result = list(alternate_traversal(3, 2))
+    assert result == [(0, 0), (1, 0), (2, 0), (2, 1), (1, 1), (0, 1)]
+
+    # Test a 2x3 grid
+    result = list(alternate_traversal(2, 3))
+    assert result == [(0, 0), (1, 0), (1, 1), (0, 1), (0, 2), (1, 2)]
+
+    # Test a 1x1 grid
+    result = list(alternate_traversal(1, 1))
+    assert result == [(0, 0)]
+
+    # Test a 0x0 grid
+    result = list(alternate_traversal(0, 0))
+    assert result == []
