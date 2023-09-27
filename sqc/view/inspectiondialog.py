@@ -144,10 +144,10 @@ class InspectionDialog(QtWidgets.QDialog):
     def readSettings(self) -> None:
         settings = QtCore.QSettings()
         settings.beginGroup("inspection")
-        geometry = settings.value("geometry", QtCore.QByteArray(), QtCore.QByteArray)
+        self.restoreGeometry(settings.value("geometry", QtCore.QByteArray(), QtCore.QByteArray))
+        self.setWaitingTime(settings.value("waitingTime", 0.1, float))
         options = settings.value("options", {}, dict)
         settings.endGroup()
-        self.restoreGeometry(geometry)
         sensor_type = self.context.parameters.get("sensor_type")
         sensor_options = options.get(sensor_type, {})
         self.setXImages(int(sensor_options.get("x_images", 15)))
@@ -173,6 +173,7 @@ class InspectionDialog(QtWidgets.QDialog):
         })
         settings.setValue("options", options)
         settings.setValue("geometry", self.saveGeometry())
+        settings.setValue("waitingTime", self.waitingTime())
         settings.endGroup()
 
     def xImages(self) -> int:
@@ -204,6 +205,9 @@ class InspectionDialog(QtWidgets.QDialog):
 
     def waitingTime(self) -> float:
         return self.waitingTimeSpinBox.value()
+
+    def setWaitingTime(self, seconds: float) -> None:
+        self.waitingTimeSpinBox.setValue(seconds)
 
     def openDirectory(self) -> None:
         try:
