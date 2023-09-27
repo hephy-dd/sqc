@@ -81,7 +81,6 @@ class InspectionDialog(QtWidgets.QDialog):
         self.waitingTimeSpinBox.setSuffix(" s")
 
         self.outputLineEdit = QtWidgets.QLineEdit(self)
-        self.outputLineEdit.setText("/tmp/images")
 
         self.autoStartMeasurementCheckBox = QtWidgets.QCheckBox(self)
         self.autoStartMeasurementCheckBox.setText("Start measurements when finished")
@@ -156,7 +155,9 @@ class InspectionDialog(QtWidgets.QDialog):
         self.setSensorWidth(float(sensor_options.get("sensor_width", 100.0)))
         self.setSensorHeight(float(sensor_options.get("sensor_height", 100.0)))
         output_path = self.context.parameters.get("output_path", "")
-        self.outputLineEdit.setText(output_path)
+        sensor_name = self.context.parameters.get("sensor_name", "unnamed")
+        path = os.path.join(output_path, safe_filename(sensor_name), "images")
+        self.outputLineEdit.setText(path)
 
     def writeSettings(self) -> None:
         settings = QtCore.QSettings()
@@ -249,8 +250,6 @@ class InspectionDialog(QtWidgets.QDialog):
         timestamp = make_iso()
         path = os.path.abspath(os.path.join(
             self.outputPath(),
-            safe_filename(sensor_name),
-            "images",
             safe_filename(timestamp),
         ))
         config = {
