@@ -156,7 +156,7 @@ class InspectionDialog(QtWidgets.QDialog):
         self.setSensorHeight(float(sensor_options.get("sensor_height", 100.0)))
         output_path = self.context.parameters.get("output_path", "")
         sensor_name = self.context.parameters.get("sensor_name", "unnamed")
-        path = os.path.join(output_path, safe_filename(sensor_name), "images")
+        path = os.path.join(os.path.abspath(output_path), safe_filename(sensor_name), "images")
         self.outputLineEdit.setText(path)
 
     def writeSettings(self) -> None:
