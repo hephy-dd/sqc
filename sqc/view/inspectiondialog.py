@@ -307,8 +307,8 @@ class InspectionDialog(QtWidgets.QDialog):
             def table_move_to_sector(x: int, y: int):
                 """Move table to sector by x, y index relative to start position."""
                 x_pos, y_pos, z_pos = start_position
-                x_pos += (x * x_step_size)
-                y_pos += (y * y_step_size)
+                x_pos += (x * x_step_size)  # move right
+                y_pos -= (y * y_step_size)  # move down
                 logger.info("move table to: %r", (x_pos, y_pos, z_pos))
                 self.context.station.table_move_absolute((x_pos, y_pos, z_pos))
 
