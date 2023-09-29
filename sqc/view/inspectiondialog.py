@@ -37,7 +37,7 @@ class InspectionDialog(QtWidgets.QDialog):
         self.startPosition = None
 
         self._stopRequested = threading.Event()
-        self._thread = None
+        self._thread: Optional[threading.Thread] = None
         self._maybeAutoStart: bool = False
 
         # Images
@@ -355,6 +355,8 @@ class InspectionDialog(QtWidgets.QDialog):
             z_offset = 2_000  # micron
 
             position = config.get("position")
+            if not isinstance(position, tuple):
+                raise RuntimeError("No alignment position available.")
             x, y, z = position
 
             x_pos, y_pos, z_pos = 0, 0, -abs(z_offset)
