@@ -20,6 +20,7 @@ logger = logging.getLogger(__name__)
 class InspectionDialog(QtWidgets.QDialog):
     """Optical inspection dialog."""
 
+    tablePositionChanged = QtCore.pyqtSignal(tuple)
     progressRangeChanged = QtCore.pyqtSignal(int, int)
     progressValueChanged = QtCore.pyqtSignal(int)
     failed = QtCore.pyqtSignal(Exception)
@@ -33,9 +34,11 @@ class InspectionDialog(QtWidgets.QDialog):
 
         self.context = context
         self.scene = scene
+        self.startPosition = None
 
         self._stopRequested = threading.Event()
         self._thread = None
+        self._maybeAutoStart: bool = False
 
         # Images
 
@@ -82,18 +85,23 @@ class InspectionDialog(QtWidgets.QDialog):
 
         self.outputLineEdit = QtWidgets.QLineEdit(self)
 
+        self.openButton = QtWidgets.QPushButton(self)
+        self.openButton.setText("Show")
+        self.openButton.setMaximumWidth(48)
+        self.openButton.clicked.connect(self.openDirectory)
+
         self.autoStartMeasurementCheckBox = QtWidgets.QCheckBox(self)
         self.autoStartMeasurementCheckBox.setText("Start measurements when finished")
 
-        self.startButton = QtWidgets.QPushButton(self)
-        self.startButton.setText("&Start")
+        self.startMoveButton = QtWidgets.QPushButton(self)
+        self.startMoveButton.setText("Begin Pos")
+        self.startMoveButton.setToolTip("Move to start position relative to first Reference Pad")
+
+        self.startScanButton = QtWidgets.QPushButton(self)
+        self.startScanButton.setText("&Start Scan")
 
         self.stopButton = QtWidgets.QPushButton(self)
         self.stopButton.setText("Sto&p")
-
-        self.openButton = QtWidgets.QPushButton(self)
-        self.openButton.setText("Open")
-        self.openButton.clicked.connect(self.openDirectory)
 
         self.progressBar = QtWidgets.QProgressBar(self)
 
@@ -103,42 +111,58 @@ class InspectionDialog(QtWidgets.QDialog):
         hLayout.addWidget(self.imagesGroupBox)
         hLayout.addWidget(self.geometryGroupBox)
 
+        hLayout2 = QtWidgets.QHBoxLayout()
+        hLayout2.addWidget(self.outputLineEdit, 1)
+        hLayout2.addWidget(self.openButton, 0)
+
+        hLayout3= QtWidgets.QHBoxLayout()
+        hLayout3.addWidget(self.startMoveButton)
+        hLayout3.addWidget(self.startScanButton)
+
         layout = QtWidgets.QGridLayout(self)
         layout.addLayout(hLayout, 0, 0)
         layout.addWidget(QtWidgets.QLabel("Waiting Time"))
         layout.addWidget(self.waitingTimeSpinBox)
         layout.addWidget(QtWidgets.QLabel("Ouptut Path"))
-        layout.addWidget(self.outputLineEdit)
-        layout.addWidget(self.autoStartMeasurementCheckBox)
-        layout.addWidget(self.progressBar)
-        layout.addWidget(self.startButton)
-        layout.addWidget(self.stopButton)
-        layout.addWidget(self.openButton)
+        layout.addLayout(hLayout2, 4, 0)
+        layout.setRowStretch(5, 1)
+        layout.addWidget(self.autoStartMeasurementCheckBox, 6, 0)
+        layout.addWidget(self.progressBar, 7, 0)
+        layout.addLayout(hLayout3, 8, 0)
+        layout.addWidget(self.stopButton, 9, 0)
 
         self.progressRangeChanged.connect(self.progressBar.setRange)
         self.progressValueChanged.connect(self.progressBar.setValue)
         self.failed.connect(self.showException)
+        self.finished.connect(self.handleAutoStart)
         self.closeRequested.connect(self.close)
 
-        self.idleState = QtCore.QState()
-        self.idleState.entered.connect(self.enterIdle)
+        self.readyState = QtCore.QState()
+        self.readyState.entered.connect(self.enterReady)
 
-        self.runningState = QtCore.QState()
-        self.runningState.entered.connect(self.enterRunning)
+        self.movingState = QtCore.QState()
+        self.movingState.entered.connect(self.enterMoving)
+
+        self.scanningState = QtCore.QState()
+        self.scanningState.entered.connect(self.enterScanning)
 
         self.abortingState = QtCore.QState()
         self.abortingState.entered.connect(self.enterAborting)
 
-        self.idleState.addTransition(self.startButton.clicked, self.runningState)
-        self.runningState.addTransition(self.stopButton.clicked, self.abortingState)
-        self.runningState.addTransition(self.finished, self.idleState)
-        self.abortingState.addTransition(self.finished, self.idleState)
+        self.readyState.addTransition(self.startMoveButton.clicked, self.movingState)
+        self.readyState.addTransition(self.startScanButton.clicked, self.scanningState)
+        self.movingState.addTransition(self.stopButton.clicked, self.abortingState)
+        self.movingState.addTransition(self.finished, self.readyState)
+        self.scanningState.addTransition(self.stopButton.clicked, self.abortingState)
+        self.scanningState.addTransition(self.finished, self.readyState)
+        self.abortingState.addTransition(self.finished, self.readyState)
 
         self.stateMachine = QtCore.QStateMachine(self)
-        self.stateMachine.addState(self.idleState)
-        self.stateMachine.addState(self.runningState)
+        self.stateMachine.addState(self.readyState)
+        self.stateMachine.addState(self.movingState)
+        self.stateMachine.addState(self.scanningState)
         self.stateMachine.addState(self.abortingState)
-        self.stateMachine.setInitialState(self.idleState)
+        self.stateMachine.setInitialState(self.readyState)
         self.stateMachine.start()
 
     def readSettings(self) -> None:
@@ -224,30 +248,80 @@ class InspectionDialog(QtWidgets.QDialog):
     def isAutoStartEnabled(self) -> bool:
         return self.autoStartMeasurementCheckBox.isChecked()  #TODO thread safe?
 
-    def showException(self, exc):
+    def handleAutoStart(self) -> None:
+        if self._maybeAutoStart:
+            if self.isAutoStartEnabled():
+                self.context.auto_start_measurement = True
+                self.closeRequested.emit()
+
+    def showException(self, exc) -> None:
         logger.exception(exc)
         QtWidgets.QMessageBox.critical(self, "Exception Occurred", format(exc))
 
-    def enterIdle(self):
+    def enterReady(self) -> None:
         self.xImagesSpinBox.setEnabled(True)
         self.yImagesSpinBox.setEnabled(True)
         self.sensorWidthSpinBox.setEnabled(True)
         self.sensorHeightSpinBox.setEnabled(True)
+        self.waitingTimeSpinBox.setEnabled(True)
         self.outputLineEdit.setEnabled(True)
-        self.startButton.setEnabled(True)
+        self.openButton.setEnabled(True)
+        self.autoStartMeasurementCheckBox.setEnabled(True)
+        self.startMoveButton.setEnabled(self.startPosition is not None)
+        self.startScanButton.setEnabled(True)
         self.stopButton.setEnabled(False)
         self.progressBar.setVisible(False)
 
-    def enterRunning(self):
+    def enterMoving(self) -> None:
+        self.xImagesSpinBox.setEnabled(False)
+        self.yImagesSpinBox.setEnabled(False)
+        self.sensorWidthSpinBox.setEnabled(False)
+        self.sensorHeightSpinBox.setEnabled(False)
+        self.waitingTimeSpinBox.setEnabled(False)
+        self.outputLineEdit.setEnabled(False)
+        self.autoStartMeasurementCheckBox.setEnabled(False)
+        self.startMoveButton.setEnabled(False)
+        self.startScanButton.setEnabled(False)
+        self.stopButton.setEnabled(True)
+        self.progressBar.setVisible(True)
+        self.progressBar.setRange(0, 0)
+        self.startMoving()
+
+    def enterScanning(self) -> None:
         self.xImagesSpinBox.setEnabled(False)
         self.yImagesSpinBox.setEnabled(False)
         self.sensorWidthSpinBox.setEnabled(False)
         self.sensorHeightSpinBox.setEnabled(False)
         self.outputLineEdit.setEnabled(False)
-        self.startButton.setEnabled(False)
+        self.startMoveButton.setEnabled(False)
+        self.startScanButton.setEnabled(False)
         self.stopButton.setEnabled(True)
         self.progressBar.setVisible(True)
         self.progressBar.setRange(0, 0)
+        self.startScanning()
+
+    def enterAborting(self) -> None:
+        self.stopButton.setEnabled(False)
+        self._stopRequested.set()
+
+    def startMoving(self) -> None:
+        x_images = self.xImagesSpinBox.value()
+        y_images = self.yImagesSpinBox.value()
+        sensor_name = self.context.parameters.get("sensor_name", "unnamed")
+        timestamp = make_iso()
+        path = os.path.abspath(os.path.join(
+            self.outputPath(),
+            safe_filename(timestamp),
+        ))
+        config = {
+            "position": self.startPosition,
+        }
+        self._maybeAutoStart = False
+        self._stopRequested = threading.Event()
+        self._thread = threading.Thread(target=self.moveWorker, args=[config])
+        self._thread.start()
+
+    def startScanning(self) -> None:
         x_images = self.xImagesSpinBox.value()
         y_images = self.yImagesSpinBox.value()
         sensor_name = self.context.parameters.get("sensor_name", "unnamed")
@@ -264,13 +338,10 @@ class InspectionDialog(QtWidgets.QDialog):
             "sensor_height": self.sensorHeight(),
             "path": path,
         }
+        self._maybeAutoStart = False
         self._stopRequested = threading.Event()
-        self._thread = threading.Thread(target=self.worker, args=[config])
+        self._thread = threading.Thread(target=self.scanWorker, args=[config])
         self._thread.start()
-
-    def enterAborting(self):
-        self.stopButton.setEnabled(False)
-        self._stopRequested.set()
 
     def closeEvent(self, event: QtCore.QEvent) -> None:
         self.stopButton.click()
@@ -278,7 +349,35 @@ class InspectionDialog(QtWidgets.QDialog):
             self._thread.join()
         event.accept()
 
-    def worker(self, config: dict):
+    def moveWorker(self, config: dict):
+        try:
+            x_offset = 1_000  # micron
+            z_offset = 2_000  # micron
+
+            position = config.get("position")
+            x, y, z = position
+
+            x_pos, y_pos, z_pos = 0, 0, -abs(z_offset)
+            logger.info("move table to: %r", (x_pos, y_pos, z_pos))
+            self.context.station.table_move_relative((x_pos, y_pos, z_pos))
+
+            self.tablePositionChanged.emit(self.context.station.table_position())
+
+            # CRITICAL
+            x_pos = 0 + x_offset  # move to the left with offset
+            y_pos = y
+            z_pos = z - abs(z_offset)  # move down for safety
+            logger.info("move table to: %r", (x_pos, y_pos, z_pos))
+            self.context.station.table_move_absolute((x_pos, y_pos, z_pos))
+
+            self.tablePositionChanged.emit(self.context.station.table_position())
+
+        except Exception as exc:
+            self.failed.emit(exc)
+        finally:
+            self.finished.emit()
+
+    def scanWorker(self, config: dict):
         try:
             sensor_name = config.get("sensor_name", "")
             x_images = config.get("x_images", 0)
@@ -315,11 +414,15 @@ class InspectionDialog(QtWidgets.QDialog):
                 logger.info("move table to: %r", (x_pos, y_pos, z_pos))
                 self.context.station.table_move_absolute((x_pos, y_pos, z_pos))
 
+                self.tablePositionChanged.emit(self.context.station.table_position())
+
             def table_return_to_start():
                 """Return table to start position."""
                 x_pos, y_pos, z_pos = start_position
                 logger.info("move table to: %r", (x_pos, y_pos, z_pos))
                 self.context.station.table_move_absolute((x_pos, y_pos, z_pos))
+
+                self.tablePositionChanged.emit(self.context.station.table_position())
 
             def apply_waiting_time():
                 time.sleep(self.waitingTime())
@@ -359,9 +462,7 @@ class InspectionDialog(QtWidgets.QDialog):
                 increment_progress()
 
             if not self.isAbortRequested():
-                if self.isAutoStartEnabled():
-                    self.context.auto_start_measurement = True
-                    self.closeRequested.emit()
+                self._maybeAutoStart = True
 
         except Exception as exc:
             self.failed.emit(exc)

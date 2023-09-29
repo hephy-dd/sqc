@@ -312,7 +312,7 @@ class ControlWidget(QtWidgets.QTabWidget):
 
         # Alignment
 
-        self.inspectReferenceButton = QtWidgets.QPushButton("&Inspect")
+        self.inspectReferenceButton = QtWidgets.QPushButton("&Inspect Pad")
         self.inspectReferenceButton.setEnabled(False)
         self.inspectReferenceButton.clicked.connect(self.moveToReference)
 
@@ -328,7 +328,6 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.saveButton.clicked.connect(self.saveAlignment)
 
         self.opticalInspectionButton = QtWidgets.QPushButton("Opt. Inspect.")
-        self.opticalInspectionButton.setEnabled(False)
         self.opticalInspectionButton.clicked.connect(self.showInspectDialog)
 
         self.commandsGroupBox = QtWidgets.QGroupBox()
@@ -545,7 +544,6 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.assignButton.setEnabled(not isAligned)
         self.nextButton.setEnabled(not isAligned)
         self.saveButton.setEnabled(not isAligned)
-        self.opticalInspectionButton.setEnabled(isAligned)
         self.resizeAlignmentTree()
 
     def addReferncePad(self, pad):
@@ -637,6 +635,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.setLocked(state)
         self.joystickCheckBox.setEnabled(True)
         self.tableController.setJoystickEnabled(state)
+        self.requestPosition()
 
     def setAlignmentHint(self, text: str) -> None:
         self.alignmentHintLabel.setText(text)
@@ -660,7 +659,6 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.contactButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.inspectButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.saveButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
-        self.opticalInspectionButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.nextButton.setEnabled(len(self.alignmentController.assignedItems()) < 3)
         if self.alignmentController.isAligned():
             self.setAlignmentHint("Click <b>Save</b> to accept alignment.")
@@ -687,7 +685,6 @@ class ControlWidget(QtWidgets.QTabWidget):
             self.contactButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
             self.inspectButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
             self.saveButton.setEnabled(False)
-            self.opticalInspectionButton.setEnabled(False)
             self.assignButton.setEnabled(True)
             self.nextButton.setEnabled(False)
             item = self.alignmentController.nextItem()
@@ -701,7 +698,6 @@ class ControlWidget(QtWidgets.QTabWidget):
 
     def saveAlignment(self):
         self.saveButton.setEnabled(False)
-        self.opticalInspectionButton.setEnabled(True)
         self.nextButton.setEnabled(False)
         self.assignButton.setEnabled(False)
         try:
@@ -716,7 +712,6 @@ class ControlWidget(QtWidgets.QTabWidget):
     def updateAlignmentButtons(self):
         item = self.alignmentTreeWidget.currentItem()
         self.inspectReferenceButton.setEnabled(item is not None)
-        self.opticalInspectionButton.setEnabled(self.alignmentController.isAligned())
         self.nextButton.setEnabled(not self.alignmentController.isAligned())
         self.saveButton.setEnabled(self.alignmentController.isAligned())
         self.inspectButton.setEnabled(self.alignmentController.isAligned())
@@ -827,6 +822,12 @@ class ControlWidget(QtWidgets.QTabWidget):
         dialog = InspectionDialog(self.context, self.scene, self)
         dialog.closeRequested.connect(self.closeRequested)
         dialog.closeRequested.connect(dialog.close)
+        dialog.tablePositionChanged.connect(self.updatePosition)
+        if self.alignmentController.isAligned():
+            for item in self.alignmentController.assignedItems():
+                position = item.position()
+                dialog.startPosition = position
+                break
         dialog.readSettings()
         dialog.exec()
         dialog.writeSettings()
