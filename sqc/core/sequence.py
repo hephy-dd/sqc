@@ -14,6 +14,7 @@ sequence_schema: Schema = Schema({
             "type": str,
             "name": str,
             Optional("enabled"): bool,
+            Optional("auto_disable"): bool,
             Optional("description"): str,
             Optional("namespace"): str,
             Optional("strips"): str,

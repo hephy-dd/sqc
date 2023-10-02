@@ -397,6 +397,9 @@ class SequenceStrategy:
             self.context.set_item_state(item, item.AbortedState)
         else:
             self.context.set_item_state(item, item.SuccessState)
+            # Auto disable item on success
+            if item.isEnabled() and item.isAutoDisable():
+                self.context.set_item_enabled(item, False)
 
         self.context.set_message("")
         self.context.set_current_strip(None)

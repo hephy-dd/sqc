@@ -59,6 +59,7 @@ class Context(QtCore.QObject):
 
     current_item_changed = QtCore.pyqtSignal(object)
     item_state_changed = QtCore.pyqtSignal(object, object)
+    item_enabled_changed = QtCore.pyqtSignal(object, bool)
     item_progress_changed = QtCore.pyqtSignal(object, int, int)
 
     current_strip_changed = QtCore.pyqtSignal(str)
@@ -140,6 +141,9 @@ class Context(QtCore.QObject):
 
     def set_item_state(self, item: object, state) -> None:
         self.item_state_changed.emit(item, state)
+
+    def set_item_enabled(self, item: object, state) -> None:
+        self.item_enabled_changed.emit(item, state)
 
     def set_item_progress(self, item: object, value: int, maximum: int) -> None:
         self.item_progress_changed.emit(item, value, maximum)
