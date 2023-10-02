@@ -656,7 +656,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.inspectButton.setEnabled(isAligned)
         self.assignButton.setEnabled(not isAligned)
         self.nextButton.setEnabled(not isAligned)
-        self.saveButton.setEnabled(not isAligned)
+        self.saveButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.resizeAlignmentTree()
 
     def addReferncePad(self, pad):
@@ -826,7 +826,6 @@ class ControlWidget(QtWidgets.QTabWidget):
         item = self.alignmentTreeWidget.currentItem()
         self.inspectReferenceButton.setEnabled(item is not None)
         self.nextButton.setEnabled(not self.alignmentController.isAligned())
-        self.saveButton.setEnabled(self.alignmentController.isAligned())
         self.inspectButton.setEnabled(self.alignmentController.isAligned())
 
     def showSelectPad(self):
