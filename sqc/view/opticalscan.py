@@ -12,12 +12,12 @@ from comet.utils import make_iso, safe_filename
 
 from ..core.utils import alternate_traversal, open_directory
 
-__all__ = ["InspectionDialog"]
+__all__ = ["OpticalScanDialog"]
 
 logger = logging.getLogger(__name__)
 
 
-class InspectionDialog(QtWidgets.QDialog):
+class OpticalScanDialog(QtWidgets.QDialog):
     """Optical inspection dialog."""
 
     tablePositionChanged = QtCore.pyqtSignal(tuple)
@@ -30,7 +30,7 @@ class InspectionDialog(QtWidgets.QDialog):
     def __init__(self, context, scene, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
 
-        self.setWindowTitle("Optical Inspection")
+        self.setWindowTitle("Optical Scan")
 
         self.context = context
         self.scene = scene
@@ -68,11 +68,11 @@ class InspectionDialog(QtWidgets.QDialog):
         self.sensorHeightSpinBox.setSuffix(" mm")
 
         self.geometryGroupBox = QtWidgets.QGroupBox(self)
-        self.geometryGroupBox.setTitle("Sensor Geometry")
+        self.geometryGroupBox.setTitle("Area Geometry")
 
         geometryGroupBoxLayout = QtWidgets.QFormLayout(self.geometryGroupBox)
-        geometryGroupBoxLayout.addRow("X", self.sensorWidthSpinBox)
-        geometryGroupBoxLayout.addRow("Y", self.sensorHeightSpinBox)
+        geometryGroupBoxLayout.addRow("Width", self.sensorWidthSpinBox)
+        geometryGroupBoxLayout.addRow("Height", self.sensorHeightSpinBox)
 
         # Options
 
@@ -89,19 +89,27 @@ class InspectionDialog(QtWidgets.QDialog):
         self.openButton.setText("Show")
         self.openButton.setMaximumWidth(48)
         self.openButton.clicked.connect(self.openDirectory)
+        self.openButton.setAutoDefault(False)
+        self.openButton.setDefault(False)
 
         self.autoStartMeasurementCheckBox = QtWidgets.QCheckBox(self)
         self.autoStartMeasurementCheckBox.setText("Start measurements when finished")
 
         self.startMoveButton = QtWidgets.QPushButton(self)
-        self.startMoveButton.setText("Begin Pos")
+        self.startMoveButton.setText("Scan Position")
         self.startMoveButton.setToolTip("Move to start position relative to first Reference Pad")
+        self.startMoveButton.setAutoDefault(False)
+        self.startMoveButton.setDefault(False)
 
         self.startScanButton = QtWidgets.QPushButton(self)
         self.startScanButton.setText("&Start Scan")
+        self.startScanButton.setAutoDefault(False)
+        self.startScanButton.setDefault(False)
 
         self.stopButton = QtWidgets.QPushButton(self)
         self.stopButton.setText("Sto&p")
+        self.stopButton.setAutoDefault(True)
+        self.stopButton.setDefault(True)
 
         self.progressBar = QtWidgets.QProgressBar(self)
 

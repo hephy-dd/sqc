@@ -23,7 +23,7 @@ from ..settings import Settings
 
 from .calibration import TableCalibrationDialog, NeedlesCalibrationDialog
 from .cameraview import CameraScene, CameraView
-from .inspectiondialog import InspectionDialog
+from .opticalscan import OpticalScanDialog
 
 __all__ = ["AlignmentDialog"]
 
@@ -440,8 +440,8 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.saveButton.setEnabled(False)
         self.saveButton.clicked.connect(self.saveAlignment)
 
-        self.opticalInspectionButton = QtWidgets.QPushButton("Opt. Inspect.")
-        self.opticalInspectionButton.clicked.connect(self.showInspectDialog)
+        self.opticalScanButton = QtWidgets.QPushButton("Optical Scan")
+        self.opticalScanButton.clicked.connect(self.showOpticalScanDialog)
 
         self.commandsGroupBox = QtWidgets.QGroupBox()
         self.commandsGroupBox.setTitle("Commands")
@@ -496,7 +496,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         alignmentLeftLayout.addWidget(self.assignButton)
         alignmentLeftLayout.addWidget(self.nextButton)
         alignmentLeftLayout.addWidget(self.saveButton)
-        alignmentLeftLayout.addWidget(self.opticalInspectionButton)
+        alignmentLeftLayout.addWidget(self.opticalScanButton)
         alignmentLeftLayout.addStretch()
 
         alignmentCenterLayout = QtWidgets.QVBoxLayout()
@@ -931,8 +931,8 @@ class ControlWidget(QtWidgets.QTabWidget):
             self.tableYLabel.setText("n/a")
             self.tableZLabel.setText("n/a")
 
-    def showInspectDialog(self) -> None:
-        dialog = InspectionDialog(self.context, self.scene, self)
+    def showOpticalScanDialog(self) -> None:
+        dialog = OpticalScanDialog(self.context, self.scene, self)
         dialog.closeRequested.connect(self.closeRequested)
         dialog.closeRequested.connect(dialog.close)
         dialog.tablePositionChanged.connect(self.updatePosition)
@@ -1055,11 +1055,15 @@ class OptionsWidget(QtWidgets.QWidget):
 
         # Layout
 
-        layout = QtWidgets.QGridLayout(self)
-        layout.addWidget(self.stepsGroupBox, 0, 0, 2, 1)
-        layout.addWidget(self.centerGroupBox, 0, 1)
-        layout.addWidget(self.zOffsetGroupBox, 0, 2)
-        layout.addWidget(self.positionsGroupBox, 1, 1, 1, 2)
+        leftLayout = QtWidgets.QGridLayout()
+        leftLayout.addWidget(self.stepsGroupBox, 0, 0, 2, 1)
+        leftLayout.addWidget(self.centerGroupBox, 0, 1)
+        leftLayout.addWidget(self.zOffsetGroupBox, 1, 1)
+        leftLayout.addWidget(self.positionsGroupBox, 0, 2, 2, 1)
+        leftLayout.setColumnStretch(2, 1)
+
+        layout = QtWidgets.QHBoxLayout(self)
+        layout.addLayout(leftLayout)
 
         self.setDefaults()
         self.resizePositionColumns()
@@ -1274,7 +1278,7 @@ class AlignmentDialog(QtWidgets.QDialog):
         contentLayout.addWidget(self.zoomToolBar)
         contentLayout.addWidget(self.controlWidget)
         contentLayout.addWidget(self.buttonBox)
-        contentLayout.setStretch(0, 1)
+        contentLayout.setStretch(0, 2)
         contentLayout.setStretch(1, 0)
         contentLayout.setStretch(2, 0)
         contentLayout.setStretch(3, 0)
