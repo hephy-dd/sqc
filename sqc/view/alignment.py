@@ -23,7 +23,7 @@ from ..settings import Settings
 
 from .calibration import TableCalibrationDialog, NeedlesCalibrationDialog
 from .cameraview import CameraScene, CameraView
-from .inspectiondialog import InspectionDialog
+from .opticalscan import OpticalScanDialog
 
 __all__ = ["AlignmentDialog"]
 
@@ -61,6 +61,122 @@ class ReferenceItem(QtWidgets.QTreeWidgetItem):
     def setPosition(self, position: Position) -> None:
         self.setData(0, type(self).PositionRole, position)
         self.setText(4, format(position))
+
+
+class PositionItem(QtWidgets.QTreeWidgetItem):
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._position = 0.0, 0.0, 0.0
+
+    def name(self) -> str:
+        return self.text(0)
+
+    def setName(self, name: str) -> None:
+        self.setText(0, name)
+
+    def position(self) -> Position:
+        return self._position
+
+    def setPosition(self, position: Position) -> None:
+        x, y, z = position
+        self._position = x, y, z
+        self.setText(1, f"{x:.0f}")
+        self.setText(2, f"{y:.0f}")
+        self.setText(3, f"{z:.0f}")
+
+
+class PositionDialog(QtWidgets.QDialog):
+
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
+        super().__init__(parent)
+
+        self._tablePosition = 0.0, 0.0, 0.0
+
+        self.nameLabel = QtWidgets.QLabel(self)
+        self.nameLabel.setText("Name")
+
+        self.nameLineEdit = QtWidgets.QLineEdit(self)
+
+        self.xLabel = QtWidgets.QLabel(self)
+        self.xLabel.setText("X")
+
+        self.yLabel = QtWidgets.QLabel(self)
+        self.yLabel.setText("Y")
+
+        self.zLabel = QtWidgets.QLabel(self)
+        self.zLabel.setText("Z")
+
+        self.xSpinBox = QtWidgets.QDoubleSpinBox(self)
+        self.xSpinBox.setDecimals(0)
+        self.xSpinBox.setRange(0, 1e6)
+        self.xSpinBox.setSuffix(" um")
+
+        self.ySpinBox = QtWidgets.QDoubleSpinBox(self)
+        self.ySpinBox.setDecimals(0)
+        self.ySpinBox.setRange(0, 1e6)
+        self.ySpinBox.setSuffix(" um")
+
+        self.zSpinBox = QtWidgets.QDoubleSpinBox(self)
+        self.zSpinBox.setDecimals(0)
+        self.zSpinBox.setRange(0, 1e6)
+        self.zSpinBox.setSuffix(" um")
+
+        self.assignButton = QtWidgets.QPushButton(self)
+        self.assignButton.setText("Assign Pos")
+        self.assignButton.setToolTip("Assign current table position")
+        self.assignButton.clicked.connect(self.assignCurrentPosition)
+
+        self.buttonBox = QtWidgets.QDialogButtonBox(self)
+        self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Cancel)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        layout = QtWidgets.QGridLayout(self)
+        layout.addWidget(self.nameLabel, 0, 0, 1, 4)
+        layout.addWidget(self.nameLineEdit, 1, 0, 1, 4)
+        layout.addWidget(self.xLabel, 2, 0)
+        layout.addWidget(self.yLabel, 2, 1)
+        layout.addWidget(self.zLabel, 2, 2)
+        layout.addWidget(self.xSpinBox, 3, 0)
+        layout.addWidget(self.ySpinBox, 3, 1)
+        layout.addWidget(self.zSpinBox, 3, 2)
+        layout.addWidget(self.assignButton, 3, 3)
+        layout.addWidget(self.buttonBox, 5, 0, 1, 4)
+        layout.setRowStretch(4, 1)
+
+    def setNameReadOnly(self, state: bool) -> None:
+        self.nameLineEdit.setReadOnly(state)
+
+    def name(self) -> str:
+        return self.nameLineEdit.text()
+
+    def setName(self, name: str) -> None:
+        self.nameLineEdit.setText(name)
+
+    def position(self) -> Position:
+        x = self.xSpinBox.value()
+        y = self.ySpinBox.value()
+        z = self.zSpinBox.value()
+        return x, y, z
+
+    def setPosition(self, position: Position) -> None:
+        x, y, z = position
+        self.xSpinBox.setValue(x)
+        self.ySpinBox.setValue(y)
+        self.zSpinBox.setValue(z)
+
+    def tablePosition(self) -> Position:
+        x, y, z = self._tablePosition
+        return x, y, z
+
+    def setTablePosition(self, position: Position) -> None:
+        x, y, z = position
+        self._tablePosition = x, y, z
+
+    def assignCurrentPosition(self) -> None:
+        self.setPosition(self.tablePosition())
 
 
 class SelectPadDialog(QtWidgets.QDialog):
@@ -225,13 +341,10 @@ class ControlWidget(QtWidgets.QTabWidget):
 
         self.controlWidget = QtWidgets.QWidget(self)
 
-        self.optionsWidget = OptionsWidget(self)
-
-        self.optionsScrollArea = QtWidgets.QScrollArea(self)
-        self.optionsScrollArea.setWidget(self.optionsWidget)
+        self.optionsWidget = OptionsWidget(self.context, self)
 
         self.addTab(self.controlWidget, "Controls")
-        self.addTab(self.optionsScrollArea, "Options")
+        self.addTab(self.optionsWidget, "Options")
 
         self.moveLeftButton = QtWidgets.QPushButton("-X")
         self.moveLeftButton.setFixedSize(32, 32)
@@ -312,7 +425,7 @@ class ControlWidget(QtWidgets.QTabWidget):
 
         # Alignment
 
-        self.inspectReferenceButton = QtWidgets.QPushButton("&Inspect")
+        self.inspectReferenceButton = QtWidgets.QPushButton("&Inspect Pad")
         self.inspectReferenceButton.setEnabled(False)
         self.inspectReferenceButton.clicked.connect(self.moveToReference)
 
@@ -327,9 +440,8 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.saveButton.setEnabled(False)
         self.saveButton.clicked.connect(self.saveAlignment)
 
-        self.opticalInspectionButton = QtWidgets.QPushButton("Opt. Inspect.")
-        self.opticalInspectionButton.setEnabled(False)
-        self.opticalInspectionButton.clicked.connect(self.showInspectDialog)
+        self.opticalScanButton = QtWidgets.QPushButton("Optical Scan")
+        self.opticalScanButton.clicked.connect(self.showOpticalScanDialog)
 
         self.commandsGroupBox = QtWidgets.QGroupBox()
         self.commandsGroupBox.setTitle("Commands")
@@ -384,7 +496,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         alignmentLeftLayout.addWidget(self.assignButton)
         alignmentLeftLayout.addWidget(self.nextButton)
         alignmentLeftLayout.addWidget(self.saveButton)
-        alignmentLeftLayout.addWidget(self.opticalInspectionButton)
+        alignmentLeftLayout.addWidget(self.opticalScanButton)
         alignmentLeftLayout.addStretch()
 
         alignmentCenterLayout = QtWidgets.QVBoxLayout()
@@ -544,8 +656,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.inspectButton.setEnabled(isAligned)
         self.assignButton.setEnabled(not isAligned)
         self.nextButton.setEnabled(not isAligned)
-        self.saveButton.setEnabled(not isAligned)
-        self.opticalInspectionButton.setEnabled(isAligned)
+        self.saveButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.resizeAlignmentTree()
 
     def addReferncePad(self, pad):
@@ -573,7 +684,7 @@ class ControlWidget(QtWidgets.QTabWidget):
 
     def moveMeasurePosition(self):
         try:
-            x, y, z = Settings().measurePosition()
+            x, y, z = self.optionsWidget.measurePosition()
             self.travelAbsolute((x, y, z))
         except Exception as exc:
             logger.exception(exc)
@@ -581,7 +692,7 @@ class ControlWidget(QtWidgets.QTabWidget):
 
     def moveLoadPosition(self):
         try:
-            x, y, z = Settings().loadPosition()
+            x, y, z = self.optionsWidget.loadPosition()
             self.travelAbsolute((x, y, z))
         except Exception as exc:
             logger.exception(exc)
@@ -637,6 +748,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.setLocked(state)
         self.joystickCheckBox.setEnabled(True)
         self.tableController.setJoystickEnabled(state)
+        self.requestPosition()
 
     def setAlignmentHint(self, text: str) -> None:
         self.alignmentHintLabel.setText(text)
@@ -660,7 +772,6 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.contactButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.inspectButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.saveButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
-        self.opticalInspectionButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
         self.nextButton.setEnabled(len(self.alignmentController.assignedItems()) < 3)
         if self.alignmentController.isAligned():
             self.setAlignmentHint("Click <b>Save</b> to accept alignment.")
@@ -687,7 +798,6 @@ class ControlWidget(QtWidgets.QTabWidget):
             self.contactButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
             self.inspectButton.setEnabled(len(self.alignmentController.assignedItems()) >= 3)
             self.saveButton.setEnabled(False)
-            self.opticalInspectionButton.setEnabled(False)
             self.assignButton.setEnabled(True)
             self.nextButton.setEnabled(False)
             item = self.alignmentController.nextItem()
@@ -701,7 +811,6 @@ class ControlWidget(QtWidgets.QTabWidget):
 
     def saveAlignment(self):
         self.saveButton.setEnabled(False)
-        self.opticalInspectionButton.setEnabled(True)
         self.nextButton.setEnabled(False)
         self.assignButton.setEnabled(False)
         try:
@@ -716,9 +825,7 @@ class ControlWidget(QtWidgets.QTabWidget):
     def updateAlignmentButtons(self):
         item = self.alignmentTreeWidget.currentItem()
         self.inspectReferenceButton.setEnabled(item is not None)
-        self.opticalInspectionButton.setEnabled(self.alignmentController.isAligned())
         self.nextButton.setEnabled(not self.alignmentController.isAligned())
-        self.saveButton.setEnabled(self.alignmentController.isAligned())
         self.inspectButton.setEnabled(self.alignmentController.isAligned())
 
     def showSelectPad(self):
@@ -823,10 +930,16 @@ class ControlWidget(QtWidgets.QTabWidget):
             self.tableYLabel.setText("n/a")
             self.tableZLabel.setText("n/a")
 
-    def showInspectDialog(self) -> None:
-        dialog = InspectionDialog(self.context, self.scene, self)
+    def showOpticalScanDialog(self) -> None:
+        dialog = OpticalScanDialog(self.context, self.scene, self)
         dialog.closeRequested.connect(self.closeRequested)
         dialog.closeRequested.connect(dialog.close)
+        dialog.tablePositionChanged.connect(self.updatePosition)
+        if self.alignmentController.isAligned():
+            for item in self.alignmentController.assignedItems():
+                position = item.position()
+                dialog.startPosition = position
+                break
         dialog.readSettings()
         dialog.exec()
         dialog.writeSettings()
@@ -840,8 +953,10 @@ class OptionsWidget(QtWidgets.QWidget):
 
     stepsChanged = QtCore.pyqtSignal()
 
-    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
+    def __init__(self, context, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
+
+        self.context = context
 
         # Step width
 
@@ -909,17 +1024,48 @@ class OptionsWidget(QtWidgets.QWidget):
         zOffsetLayout.addWidget(QtWidgets.QLabel("Safe Z-Offset for\nmovements between pads\nand inspecting pads."))
         zOffsetLayout.addStretch()
 
+        # Positions
+
+        self.measurePositionItem = PositionItem()
+        self.measurePositionItem.setName("Measure Position")
+
+        self.loadPositionItem = PositionItem()
+        self.loadPositionItem.setName("Load Position")
+
+        self.positionsTreeWidget = QtWidgets.QTreeWidget(self)
+        self.positionsTreeWidget.setHeaderLabels(["Name", "X", "Y", "Z"])
+        self.positionsTreeWidget.setRootIsDecorated(False)
+        self.positionsTreeWidget.addTopLevelItem(self.measurePositionItem)
+        self.positionsTreeWidget.addTopLevelItem(self.loadPositionItem)
+        self.positionsTreeWidget.itemDoubleClicked.connect(self.positionDoubleClicked)
+        self.positionsTreeWidget.currentItemChanged.connect(self.updatePositionButtons)
+
+        self.editPositionButton = QtWidgets.QPushButton(self)
+        self.editPositionButton.setText("&Edit")
+        self.editPositionButton.setEnabled(False)
+        self.editPositionButton.clicked.connect(self.positionEditClicked)
+
+        self.positionsGroupBox = QtWidgets.QGroupBox(self)
+        self.positionsGroupBox.setTitle("Positions")
+
+        positionsLayout = QtWidgets.QGridLayout(self.positionsGroupBox)
+        positionsLayout.addWidget(self.positionsTreeWidget, 0, 0, 2, 1)
+        positionsLayout.addWidget(self.editPositionButton, 0, 1)
+
         # Layout
 
-        leftLayout = QtWidgets.QHBoxLayout()
-        leftLayout.addWidget(self.stepsGroupBox)
-        leftLayout.addWidget(self.centerGroupBox)
-        leftLayout.addWidget(self.zOffsetGroupBox)
+        leftLayout = QtWidgets.QGridLayout()
+        leftLayout.addWidget(self.stepsGroupBox, 0, 0, 2, 1)
+        leftLayout.addWidget(self.centerGroupBox, 0, 1)
+        leftLayout.addWidget(self.zOffsetGroupBox, 1, 1)
+        leftLayout.addWidget(self.positionsGroupBox, 0, 2, 2, 1)
+        leftLayout.setColumnStretch(2, 1)
 
-        layout = QtWidgets.QVBoxLayout(self)
+        layout = QtWidgets.QHBoxLayout(self)
         layout.addLayout(leftLayout)
 
         self.setDefaults()
+        self.resizePositionColumns()
 
     def setDefaults(self) -> None:
         """Set default values for options."""
@@ -982,6 +1128,46 @@ class OptionsWidget(QtWidgets.QWidget):
 
     def setZOffset(self, offset: int) -> None:
         self.zOffsetSpinBox.setValue(offset)
+
+    def measurePosition(self) -> Position:
+        return self.measurePositionItem.position()
+
+    def setMeasurePosition(self, position: Position) -> None:
+        self.measurePositionItem.setPosition(position)
+
+    def loadPosition(self) -> Position:
+        return self.loadPositionItem.position()
+
+    def setLoadPosition(self, position: Position) -> None:
+        self.loadPositionItem.setPosition(position)
+
+    def positionDoubleClicked(self, item, column) -> None:
+        self.editPosition(item)
+
+    def positionEditClicked(self) -> None:
+        item = self.positionsTreeWidget.currentItem()
+        self.editPosition(item)
+
+    def editPosition(self, item) -> None:
+        if isinstance(item, PositionItem):
+            dialog = PositionDialog(self)
+            dialog.setWindowTitle("Edit Position")
+            dialog.setName(item.name())
+            dialog.setPosition(item.position())
+            dialog.setNameReadOnly(True)  # TODO
+            dialog.setTablePosition(self.context.station.table_position())
+            if dialog.exec() == dialog.Accepted:
+                item.setPosition(dialog.position())
+                self.resizePositionColumns()
+
+    def updatePositionButtons(self, current, previous):
+        self.editPositionButton.setEnabled(isinstance(current, PositionItem))
+
+    def resizePositionColumns(self) -> None:
+        self.positionsTreeWidget.resizeColumnToContents(1)
+        self.positionsTreeWidget.resizeColumnToContents(2)
+        self.positionsTreeWidget.resizeColumnToContents(3)
+        self.positionsTreeWidget.resizeColumnToContents(0)
 
 
 class AlignmentDialog(QtWidgets.QDialog):
@@ -1091,7 +1277,7 @@ class AlignmentDialog(QtWidgets.QDialog):
         contentLayout.addWidget(self.zoomToolBar)
         contentLayout.addWidget(self.controlWidget)
         contentLayout.addWidget(self.buttonBox)
-        contentLayout.setStretch(0, 1)
+        contentLayout.setStretch(0, 2)
         contentLayout.setStretch(1, 0)
         contentLayout.setStretch(2, 0)
         contentLayout.setStretch(3, 0)
@@ -1142,7 +1328,7 @@ class AlignmentDialog(QtWidgets.QDialog):
         self.controlWidget.tableController.setJoystickEnabled(enabled)
 
     def readSettings(self):
-        settings =  QtCore.QSettings()
+        settings = QtCore.QSettings()
         settings.beginGroup("AlignmentDialog")
         geometry = settings.value("geometry", QtCore.QByteArray(), QtCore.QByteArray)
         if not self.restoreGeometry(geometry):
@@ -1161,6 +1347,8 @@ class AlignmentDialog(QtWidgets.QDialog):
             except Exception as exc:
                 logger.exception(exc)
         settings.endGroup()
+        self.controlWidget.optionsWidget.setMeasurePosition(Settings().measurePosition())
+        self.controlWidget.optionsWidget.setLoadPosition(Settings().loadPosition())
 
     def syncSettings(self):
         settings = QtCore.QSettings()
@@ -1173,6 +1361,8 @@ class AlignmentDialog(QtWidgets.QDialog):
         settings.setValue("zoffset", self.controlWidget.zOffset())
         settings.setValue("steps", self.controlWidget.optionsWidget.steps())
         settings.endGroup()
+        Settings().setMeasurePosition(self.controlWidget.optionsWidget.measurePosition())
+        Settings().setLoadPosition(self.controlWidget.optionsWidget.loadPosition())
 
     def accept(self) -> None:
         if not self.isLocked():

@@ -23,6 +23,7 @@ def loadSequenceItems(sequence):
         item.setTypeName(measurement.get("type"))
         item.setName(measurement.get("name"))
         item.setEnabled(measurement.get("enabled", True))
+        item.setAutoDisable(measurement.get("auto_disable", True))
         item.setNamespace(measurement.get("namespace", ""))
         item.setDefaultStrips(measurement.get("strips", ""))
         item.setStrips(measurement.get("strips", ""))
@@ -78,6 +79,7 @@ class SequenceItem(QtWidgets.QTreeWidgetItem):
         super().__init__()
         self.setLocked(False)
         self.setEnabled(True)
+        self.setAutoDisable(True)
         self.setTypeName("")
         self.setNamespace("")
         self.setName("")
@@ -107,6 +109,12 @@ class SequenceItem(QtWidgets.QTreeWidgetItem):
     def setEnabled(self, enabled: bool) -> None:
         state = QtCore.Qt.Checked if enabled else QtCore.Qt.Unchecked
         self.setCheckState(type(self).NameColumn, state)
+
+    def isAutoDisable(self) -> bool:
+        return self._autoDisable
+
+    def setAutoDisable(self, enabled: bool) -> None:
+        self._autoDisable = enabled
 
     def typeName(self) -> str:
         return self._type

@@ -56,6 +56,7 @@ class DashboardWidget(QtWidgets.QWidget):
         self.context.current_item_changed.connect(self.showSequenceItem)
         self.context.current_item_changed.connect(self.setCurrentItem)
         self.context.item_state_changed.connect(lambda item, state: item.setState(state))
+        self.context.item_enabled_changed.connect(lambda item, state: item.setEnabled(state))
         self.context.item_progress_changed.connect(lambda item, value, maximum: item.setProgress(value, maximum))
         self.context.bias_voltage_changed.connect(self.setBiasVoltage)
         self.context.current_strip_changed.connect(self.setCurrentStrip)

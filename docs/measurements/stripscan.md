@@ -9,6 +9,7 @@ Type: `stripscan`
 - **name**: (str) name of node.
 - **strips**: (str) range of strips to be measured. Default is an empty string.
 - **enabled**: (bool) enabled state. Default is `true`.
+- **auto_disable**: (bool) auto disable on success. Default is `true`.
 - **parameters**:
     - **hv_channels**: (list) list of high voltage channels. Default is `[]`.
     - **bias_voltage**: (metric) bias voltage to be applied. Required.
@@ -23,6 +24,7 @@ Type: `stripscan`
   name: Stripscan
   strips: "1-1920"
   enabled: true
+  auto_disable: false
   parameters:
     hv_channels: [A1, B1, C2]
     bias_voltage: -600 V

@@ -8,6 +8,7 @@ Type: `iv`
 
 - **name**: (str) name of node.
 - **enabled**: (bool) enabled state. Default is `true`.
+- **auto_disable**: (bool) auto disable on success. Default is `true`.
 - **parameters**:
     - **hv_channels**: (list) list of high voltage channels. Default is `[]`.
     - **voltage_begin**: (metric) start voltage (`-1000 V` to `0 V`). Required.
@@ -22,6 +23,7 @@ Type: `iv`
 - type: iv
   name: IV
   enabled: true
+  auto_disable: true
   parameters:
     hv_channels: [A1, B1, C2]
     voltage_begin: 0 V
