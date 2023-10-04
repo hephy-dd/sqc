@@ -367,6 +367,8 @@ class OpticalScanDialog(QtWidgets.QDialog):
                 raise RuntimeError("No alignment position available.")
             x, y, z = position
 
+            self.context.station.table_apply_profile("cruise")
+
             x_pos, y_pos, z_pos = 0, 0, -abs(z_offset)
             logger.info("move table to: %r", (x_pos, y_pos, z_pos))
             self.context.station.table_move_relative((x_pos, y_pos, z_pos))
@@ -408,6 +410,8 @@ class OpticalScanDialog(QtWidgets.QDialog):
 
             self.progressRangeChanged.emit(0, maximum_steps + 1)
             self.progressValueChanged.emit(0)
+
+            self.context.station.table_apply_profile("optical_scan")
 
             # Move table down 1 mm
             # self.context.station.table_move_relative((0, 0, -1.0))

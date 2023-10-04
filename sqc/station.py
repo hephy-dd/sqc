@@ -665,24 +665,43 @@ class Station:
     # Table
 
     def table_configure(self) -> None:
-        table = self.get_resource("table")
-        Table(table).configure()
+        table = Table(self.get_resource("table"))
+        table.configure()
+
+    def table_apply_profile(self, name: str) -> None:
+        table = Table(self.get_resource("table"))
+
+        profile = Settings().tableProfile(name)
+        if not profile:
+            raise KeyError("No such table profile: %r", name)
+
+        logger.info("Applying table profile: %r", name)
+
+        accel = profile.get("accel")
+        if accel is not None:
+            table.set_accel(int(accel))
+            logger.info("Set table acceleration: %G", accel)
+
+        vel = profile.get("vel")
+        if vel is not None:
+            table.set_vel(int(vel))
+            logger.info("Set table velocity: %G", vel)
 
     def table_position(self) -> Tuple[float, float, float]:
-        table = self.get_resource("table")
-        return Table(table).position()
+        table = Table(self.get_resource("table"))
+        return table.position()
 
     def table_move_relative(self, position: Tuple[float, float, float]) -> None:
-        table = self.get_resource("table")
-        Table(table).move_relative(position)
+        table = Table(self.get_resource("table"))
+        table.move_relative(position)
 
     def table_move_absolute(self, position: Tuple[float, float, float]) -> None:
-        table = self.get_resource("table")
-        Table(table).move_absolute(position)
+        table = Table(self.get_resource("table"))
+        table.move_absolute(position)
 
     def table_safe_move_absolute(self, position: Tuple[float, float, float]) -> None:
-        table = self.get_resource("table")
-        Table(table).safe_move_absolute(position)
+        table = Table(self.get_resource("table"))
+        table.safe_move_absolute(position)
 
 
     # Needles

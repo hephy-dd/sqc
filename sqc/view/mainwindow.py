@@ -11,6 +11,7 @@ from ..settings import Settings
 from .dashboard import DashboardWidget, formatTemperature, formatHumidity
 from .profiles import ProfilesDialog, readProfiles
 from .resources import ResourcesDialog
+from .preferences import PreferencesDialog
 from .databrowser import DataBrowserWindow
 from .loggerwidget import QueuedLoggerWidget
 from .alignment import AlignmentDialog
@@ -73,6 +74,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.resourcesAction = QtWidgets.QAction("&Resources...")
         self.resourcesAction.triggered.connect(self.showResources)
+
+        self.preferencesAction = QtWidgets.QAction("Pre&ferences...")
+        self.preferencesAction.triggered.connect(self.showPreferences)
 
         self.dataBrowserAction = QtWidgets.QAction("Data &Browser")
         self.dataBrowserAction.setIcon(QtGui.QIcon.fromTheme("icons:view-browser.svg"))
@@ -144,6 +148,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.editMenu = self.menuBar().addMenu("&Edit")
         self.editMenu.addAction(self.profilesAction)
         self.editMenu.addAction(self.resourcesAction)
+        self.editMenu.addSeparator()
+        self.editMenu.addAction(self.preferencesAction)
 
         self.viewMenu = self.menuBar().addMenu("&View")
         self.viewMenu.addAction(self.dataBrowserAction)
@@ -391,6 +397,19 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception as exc:
             logger.exception(exc)
 
+    @QtCore.pyqtSlot()
+    def showPreferences(self) -> None:
+        try:
+            dialog = PreferencesDialog(self)
+            dialog.readSettings()
+            dialog.loadValues()
+            dialog.exec()
+            if dialog.result() == dialog.Accepted:
+                dialog.saveValues()
+            dialog.syncSettings()
+        except Exception as exc:
+            logger.exception(exc)
+
     # View
 
     def setDataBrowserVisible(self, checked: bool) -> None:
@@ -591,6 +610,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.newMeasurementAction.setEnabled(True)
         self.profilesAction.setEnabled(True)
         self.resourcesAction.setEnabled(True)
+        self.preferencesAction.setEnabled(True)
         self.startAction.setEnabled(True)
         self.suspendAction.setEnabled(False)
         self.suspendAction.setChecked(False)
@@ -614,6 +634,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.newMeasurementAction.setEnabled(False)
         self.profilesAction.setEnabled(False)
         self.resourcesAction.setEnabled(False)
+        self.preferencesAction.setEnabled(False)
         self.startAction.setEnabled(False)
         self.suspendAction.setEnabled(True)
         self.suspendAction.setChecked(False)
