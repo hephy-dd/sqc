@@ -330,6 +330,7 @@ class ControlWidget(QtWidgets.QTabWidget):
         self.tableController.movementFinished.connect(self.finishMove)
         self.tableController.failed.connect(self.showException)
         self.tableController.start()
+        self.tableController.applyProfile("cruise")
 
         self.needleController = NeedleController(context.station)
         # self.needleController.positionChanged.connect(self.updateNeedlesPosition)

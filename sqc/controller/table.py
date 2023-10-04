@@ -35,6 +35,15 @@ class Table:  # TODO
         unit = self.driver.unit
         assert unit == (1, 1, 1, 1), f"Invalid table axis unit: {unit}"
 
+    def set_accel(self, accel: int) -> None:
+        self.driver.resource.write(f"{accel:d} setaccel")
+
+    def set_vel(self, vel: int) -> None:
+        self.driver.resource.write(f"{vel:d} setvel")
+
+    def set_accelfunc(self, accelfunc: int) -> None:
+        self.driver.resource.write(f"{accelfunc:d} setaccelfunc")
+
     def position(self) -> Tuple[float, float, float]:
         return self.driver.pos
 
@@ -181,6 +190,11 @@ class TableController(QtCore.QObject):
 
     def requestAbort(self) -> None:
         self.abortRequested = True
+
+    def applyProfile(self, name: str) -> None:
+        def request(context):
+            self.station.table_apply_profile(name)
+        self._queue.put(Request(request))
 
     def requestPosition(self) -> None:
         def request(context):

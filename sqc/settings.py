@@ -1,3 +1,4 @@
+import copy
 import os
 from pathlib import Path
 from typing import List, Tuple
@@ -15,15 +16,16 @@ from .core.resource import driver_registry, Resource
 
 __all__ = ["Settings"]
 
-ROOT_PATH = os.path.dirname(os.path.dirname(__file__))
 
 Position = Tuple[float, float, float]
 
-DEFAULT_LOAD_POSITION = 0.0, 193309.0, 0.0
+ROOT_PATH: str = os.path.dirname(os.path.dirname(__file__))
 
-DEFAULT_MEASUREMENT_POSITION = 19585.0, 187568.0, 9700.0
+DEFAULT_LOAD_POSITION: Position = 0.0, 193309.0, 0.0
 
-DEFAULT_RESOURCES = {
+DEFAULT_MEASUREMENT_POSITION: Position = 19585.0, 187568.0, 9700.0
+
+DEFAULT_RESOURCES: dict = {
     "bias_smu": {"model": "K2657A", "models": ["K2657A", "K2410", "K2470"]},
     "smu": {"model": "K2410", "models": ["K2657A", "K2410", "K2470"]},
     "lcr": {"model": "E4980A", "models": ["E4980A"]},
@@ -33,6 +35,12 @@ DEFAULT_RESOURCES = {
     "environ": {"model": "EnvironBox", "models": ["EnvironBox"]},
     "table": {"model": "Venus1", "models": ["Venus1"]},
     "tango": {"model": "TANGO", "models": ["TANGO"]},
+}
+
+DEFAULT_TABLE_PROFILES: dict = {
+    "cruise": {"accel": 3000, "vel": 10000},
+    "strip_scan": {"accel": 1500, "vel": 5000},
+    "optical_scan": {"accel": 1500, "vel": 2500},
 }
 
 # Register instrument drivers
@@ -131,3 +139,19 @@ class Settings:
             termination=resource.get("termination", "\r\n"),
             timeout=resource.get("timeout", 8.0),
         )
+
+    def tableProfile(self, key: str) -> dict:
+        profile = copy.deepcopy(DEFAULT_TABLE_PROFILES.get(key, {}))
+        settings = self.settings()
+        settings.beginWriteArray("table")
+        profile.update(settings.value("profiles", {}, dict).get(key, {}))
+        settings.endArray()
+        return profile
+
+    def setTableProfile(self, key: str, profile: dict) -> None:
+        settings = self.settings()
+        settings.beginWriteArray("table")
+        profiles = settings.value("profiles", {}, dict)
+        profiles.setdefault(key, {}).update(profile)
+        settings.setValue("profiles", profiles)
+        settings.endArray()

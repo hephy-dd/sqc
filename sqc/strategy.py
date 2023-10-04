@@ -46,6 +46,7 @@ class SequenceController:
         station.box_set_test_running(True)
         station.safe_initialize()
         station.table_configure()
+        station.table_apply_profile("strip_scan")
 
         self.safe_recover_table()
 
