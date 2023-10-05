@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2023-10-05
+### Added
+- Show sensor information for JSON files in data browser (#35).
+
+### Fixed
+- Resize strip scan plots in data browser to number of sensor strips (#35).
+
 ## [0.7.0] - 2023-10-04
 ### Added
 - Profiles for acceleration/velocity for table movements (#33).
@@ -83,7 +90,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Documentation of measurement configuration parameters.
 
-[Unreleased]: https://github.com/hephy-dd/sqc/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/hephy-dd/sqc/compare/0.7.1...HEAD
+[0.7.1]: https://github.com/hephy-dd/sqc/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/hephy-dd/sqc/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/hephy-dd/sqc/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/hephy-dd/sqc/compare/0.4.0...0.5.0

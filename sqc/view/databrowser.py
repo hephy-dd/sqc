@@ -1,6 +1,7 @@
 import logging
 import os
 import json
+from datetime import datetime
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
@@ -81,26 +82,38 @@ def createPlotWidget(dataframe):
                 labels[item.get("strip_index")] = item.get("strip")
         return labels
 
-    def populate(widget, name, n=None):
+    def populate_header():
+        header = dataframe.get("header", {})
+        sensor_name = header.get("sensor_name")
+        sensor_type = header.get("sensor_type")
+        operator_name = header.get("operator_name")
+        timestamp = header.get("timestamp")
+        header_lines = []
+        if sensor_type:
+            header_lines.append(f"Sensor Type: {sensor_type}")
+        if sensor_name:
+            header_lines.append(f"Sensor Name: {sensor_name}")
+        if operator_name:
+            header_lines.append(f"Operator: {operator_name}")
+        if timestamp:
+            fmt_timestamp = datetime.fromtimestamp(timestamp).strftime('%a %b %d %H:%M:%S %Y')
+            header_lines.append(f"Date: {fmt_timestamp}")
+        header_label = QtWidgets.QLabel()
+        header_label.setWordWrap(True)
+        header_label.setText("\n".join(header_lines))
+        header_frame = QtWidgets.QFrame()
+        header_frame.setStyleSheet("QFrame{background: white; border-radius: 4px;}")
+        layout = QtWidgets.QVBoxLayout(header_frame)
+        layout.addWidget(header_label)
+        plotLayout.addWidget(header_frame)
+
+    def populate_plot(widget, name, key=None):
         limits = LimitsAggregator()
-        if n is None:
-            n = name
-        if isinstance(widget, StripPlotWidget):
-            # Load strips from header
-            geometry = dataframe.get("header", {}).get("geometry", {})
-            labels = dict(enumerate(geometry.get("strips", [])))
-            if not labels:
-                # If no pads in header, reconstruct from data
-                labels = axisLabels(data.get(name, {}).values())
-            widget.setStrips(labels)
+        if key is None:
+            key = name
         for k, v in data.get(name, {}).items():
-            if isinstance(widget, StripPlotWidget):
-                series = widget.addScatterSeries(k)
-                pen = QtGui.QPen(QtCore.Qt.transparent)
-                series.setPen(pen)
-            else:
-                series = widget.addLineSeries(k)
-            raw_series = list(mapper(n, v))
+            series = widget.addLineSeries(k)
+            raw_series = list(mapper(key, v))
             if len(raw_series) < 1:
                 continue
             series.replace((QtCore.QPointF(float(x), float(y)) for x, y in raw_series))
@@ -114,53 +127,77 @@ def createPlotWidget(dataframe):
             widget.fitAllSeries()
         plotLayout.addWidget(widget)
 
+    def populate_strips(widget, name, key=None):
+        if key is None:
+            key = name
+        # Load strips from header
+        geometry = dataframe.get("header", {}).get("geometry", {})
+        labels = dict(enumerate(geometry.get("strips", [])))
+        if not labels:
+            # If no pads in header, reconstruct from data
+            labels = axisLabels(data.get(name, {}).values())
+        widget.setStrips(labels)
+        for k, v in data.get(name, {}).items():
+            series = widget.addScatterSeries(k)
+            pen = QtGui.QPen(QtCore.Qt.transparent)
+            series.setPen(pen)
+            raw_series = list(mapper(key, v))
+            if len(raw_series) < 1:
+                continue
+            series.replace((QtCore.QPointF(float(x), float(y)) for x, y in raw_series))
+        widget.setRange(0, len(widget.strips()))
+        widget.fitAllSeries()
+        plotLayout.addWidget(widget)
+
     group = []
+
+    populate_header()
 
     if "iv" in data:
         widget = IVPlotWidget("IV")
-        populate(widget, "iv")
+        populate_plot(widget, "iv")
 
     if "cv" in data:
         widget = CVPlotWidget("CV")
-        populate(widget, "cv")
+        populate_plot(widget, "cv")
 
     if "cv" in data:
         widget = CV2PlotWidget("CV full depletion")
-        populate(widget, "cv", "cvfd")
+        populate_plot(widget, "cv", "cvfd")
 
     if "rpoly" in data:
         widget = RStripPlotWidget("Rpoly")
-        populate(widget, "rpoly")
+        populate_strips(widget, "rpoly")
         group.append(widget)
 
     if "istrip" in data:
         widget = IStripPlotWidget("Istrip")
-        populate(widget, "istrip")
+        populate_strips(widget, "istrip")
         group.append(widget)
 
     if "idiel" in data:
         widget = IStripPlotWidget("Idiel")
-        populate(widget, "idiel")
+        populate_strips(widget, "idiel")
         group.append(widget)
 
     if "cac" in data:
         widget = CStripPlotWidget("Cac")
-        populate(widget, "cac")
+        populate_strips(widget, "cac")
         group.append(widget)
 
     if "cint" in data:
         widget = CStripPlotWidget("Cint")
-        populate(widget, "cint")
+        populate_strips(widget, "cint")
         group.append(widget)
 
     if "rint" in data:
         widget = RStripPlotWidget("Rint")
-        populate(widget, "rint")
+        populate_strips(widget, "rint")
         group.append(widget)
 
     if "idark" in data:
         widget = IStripPlotWidget("Idark")
-        populate(widget, "idark")
+        populate_strips(widget, "idark")
         group.append(widget)
 
     def syncXAxis(minimum, maximum):
