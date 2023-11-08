@@ -89,8 +89,8 @@ class Table:  # TODO
 
     def wait_movement_finished(self, position_changed: Optional[Callable] = None) -> None:
         while True:
-            pos = self.driver.pos
             time.sleep(self.poll_interval)
+            pos = self.driver.pos
             if callable(position_changed):
                 position_changed(pos)
             moving = self.driver.status & 0x1 == 0x1
