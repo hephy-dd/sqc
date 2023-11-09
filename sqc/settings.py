@@ -143,7 +143,7 @@ class Settings:
     def tableProfile(self, key: str) -> dict:
         profile = copy.deepcopy(DEFAULT_TABLE_PROFILES.get(key, {}))
         settings = self.settings()
-        settings.beginWriteArray("table")
+        settings.beginReadArray("table")
         profile.update(settings.value("profiles", {}, dict).get(key, {}))
         settings.endArray()
         return profile
@@ -155,3 +155,9 @@ class Settings:
         profiles.setdefault(key, {}).update(profile)
         settings.setValue("profiles", profiles)
         settings.endArray()
+
+    def gradualZApproach(self) -> bool:
+        return bool(self.settings().value("gradualZApproach", False, bool))
+
+    def setGradualZApproach(self, enabled: bool) -> None:
+        self.settings().setValue("gradualZApproach", bool(enabled))
