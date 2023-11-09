@@ -104,8 +104,18 @@ class TableWidget(QtWidgets.QWidget):
             row += 1
         profilesLayout.setColumnStretch(3, 1)
 
+        self.contactGroupBox = QtWidgets.QGroupBox(self)
+        self.contactGroupBox.setTitle("Contact")
+
+        self.gradualZApproachCheckBox = QtWidgets.QCheckBox(self)
+        self.gradualZApproachCheckBox.setText("Gradual Z Approach")
+
+        contactLayout = QtWidgets.QGridLayout(self.contactGroupBox)
+        contactLayout.addWidget(self.gradualZApproachCheckBox, 0, 1)
+
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.profilesGroupBox)
+        layout.addWidget(self.contactGroupBox)
         layout.addStretch()
 
     def loadValues(self) -> None:
@@ -117,6 +127,7 @@ class TableWidget(QtWidgets.QWidget):
                 profile.setVel(data["vel"])
             except Exception as exc:
                 logging.exception(exc)
+        self.gradualZApproachCheckBox.setChecked(settings.gradualZApproach())
 
     def saveValues(self) -> None:
         settings = Settings()
@@ -129,3 +140,4 @@ class TableWidget(QtWidgets.QWidget):
                 settings.setTableProfile(key, data)
             except Exception as exc:
                 logging.exception(exc)
+        settings.setGradualZApproach(self.gradualZApproachCheckBox.isChecked())

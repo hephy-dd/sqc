@@ -29,6 +29,7 @@ class SequenceController:
     def __init__(self, context):
         self.context = context
         self.contacts = ContactHandler(context.padfile)
+        self.gradual_z_approach: bool = False
 
     def initialize(self):
         self.context.set_message("Initialize...")
@@ -38,6 +39,8 @@ class SequenceController:
         self.context.set_current_strip(None)
         self.context.set_needle_position("")
         self.context.set_stripscan_progress(0, 0)
+
+        self.gradual_z_approach = Settings().gradualZApproach()  # TODO
 
         self.wait_for_box_humidity()
 
@@ -95,18 +98,20 @@ class SequenceController:
         else:
             logger.info("Contact strip: %s %s", strip, position)
             station = self.context.station
-            #
-            # TODO throttle contacting speed
-            #
-            z_approach = [20, 15, 10, 5]
-            z_offset = sum(map(abs, z_approach))
-            x, y, z = position
-            station.table_safe_move_absolute((x, y, z - abs(z_offset)))
-            for z in z_approach:
-                time.sleep(.25)
-                station.table_move_relative((0, 0, abs(z)))
 
-            # station.table_safe_move_absolute(position)
+            if self.gradual_z_approach:
+                #
+                # TODO throttle contacting speed
+                #
+                z_approach = [20, 15, 10, 5]
+                z_offset = sum(map(abs, z_approach))
+                x, y, z = position
+                station.table_safe_move_absolute((x, y, z - abs(z_offset)))
+                for z in z_approach:
+                    time.sleep(.25)
+                    station.table_move_relative((0, 0, abs(z)))
+            else:
+                station.table_safe_move_absolute(position)
 
             # Verify table position
             current_position = station.table_position()

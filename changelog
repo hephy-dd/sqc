@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [0.7.1] - 2023-10-05
 ### Added
 - Show sensor information for JSON files in data browser (#35).
+- Toggle gradual Z approach for contacting pads (#38).
 
 ### Fixed
 - Resize strip scan plots in data browser to number of sensor strips (#35).
