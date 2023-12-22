@@ -1,5 +1,9 @@
 # SQC
 
+Sensor Quality Control for the CMS Tracker
+
+![SQC switching scheme](docs/assets/sqc_switching_scheme_v3.0b.png)
+
 ## Install
 
 Install SQC from from GitHub.

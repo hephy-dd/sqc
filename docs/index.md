@@ -24,6 +24,10 @@ according to the individual setup by navigation to `Edit` &rarr; `Resources`.
 Add sensor profiles by combining a sequence file and a sensor pad file by
 navigating to `Edit` &rarr; `Sensor Profiles`.
 
+### Switching scheme
+
+![SQC switching scheme](assets/sqc_switching_scheme_v3.0b.png)
+
 ### Safety
 
 **Warning:** this software controls a highly complex, high voltage measurement
