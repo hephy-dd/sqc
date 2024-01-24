@@ -13,6 +13,7 @@ from .context import Context
 from .station import Station
 
 from .view.mainwindow import MainWindow
+from .view.databrowser import DataBrowserWindow
 
 from .plugins import Plugin
 from .plugins.json_writer import JSONWriterPlugin
@@ -24,7 +25,6 @@ __all__ = ["main"]
 PACKAGE_PATH: str = os.path.dirname(__file__)
 ASSETS_PATH: str = os.path.join(PACKAGE_PATH, "assets")
 LOG_FILENAME: str = os.path.expanduser("~/sqc.log")
-CONTENTS_URL: str = "https://github.com/hephy-dd/sqc"
 
 ENABLED_PLUGINS: List[Type[Plugin]] = [
     JSONWriterPlugin,
@@ -37,6 +37,7 @@ logger = logging.getLogger()
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="sqc", description="Sensor Quality Control (SQC) for CMS Outer Tracker.")
+    parser.add_argument('--browser', metavar="<path>", nargs="?", const=os.path.expanduser("~"), help="run data browser")
     parser.add_argument('--debug-no-table', action='store_true', help="disable sequence table movements")
     parser.add_argument('--debug-no-tango', action='store_true', help="disable sequence tango movements")
     parser.add_argument('--debug', action='store_true', help="show debug messages")
@@ -80,26 +81,23 @@ def configure_logger(logger: logging.Logger, debug: bool = False, filename: Opti
         add_rotating_file_handle(logger, filename)
 
 
-def main() -> None:
-    args = parse_args()
+def run_data_browser(args):
+    window = DataBrowserWindow()
+    window.setObjectName("dataBrowserOnly")  # create separate settings entry
+    window.setWindowFlag(QtCore.Qt.Dialog, False)  # do not show as dialog
+    window.setRootPath(args.browser)
 
-    configure_logger(logger, debug=args.debug, filename=args.logfile)
+    logging.info("SQC version %s", __version__)
 
-    QtCore.QDir.addSearchPath("icons", os.path.join(ASSETS_PATH, "icons"))
+    window.readSettings()
+    window.show()
 
-    # Enable HiDPI support
-    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, args.hidpi)
-    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
+    QtWidgets.QApplication.exec()
 
-    app = QtWidgets.QApplication(sys.argv)
-    app.setApplicationName("sqc")
-    app.setApplicationVersion(__version__)
-    app.setApplicationDisplayName(f"SQC {__version__}")
-    app.setOrganizationName("HEPHY")
-    app.setOrganizationDomain("hephy.at")
-    app.setWindowIcon(QtGui.QIcon("icons:sqc.ico"))
-    app.setProperty("ContentsUrl", CONTENTS_URL)
+    window.syncSettings()
 
+
+def run_main_window(args):
     logger.info("Creating station...")
     station = Station()
 
@@ -128,12 +126,38 @@ def main() -> None:
     window.readSettings()
     window.show()
 
-    app.exec()
+    QtWidgets.QApplication.exec()
 
     window.syncSettings()
     window.shutdown()
 
     station.shutdown()
+
+
+def main() -> None:
+    args = parse_args()
+
+    configure_logger(logger, debug=args.debug, filename=args.logfile)
+
+    QtCore.QDir.addSearchPath("icons", os.path.join(ASSETS_PATH, "icons"))
+
+    # Enable HiDPI support
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_EnableHighDpiScaling, args.hidpi)
+    QtWidgets.QApplication.setAttribute(QtCore.Qt.AA_UseHighDpiPixmaps, True)
+
+    app = QtWidgets.QApplication(sys.argv)
+    app.setApplicationName("sqc")
+    app.setApplicationVersion(__version__)
+    app.setApplicationDisplayName(f"SQC {__version__}")
+    app.setOrganizationName("HEPHY")
+    app.setOrganizationDomain("hephy.at")
+    app.setWindowIcon(QtGui.QIcon("icons:sqc.ico"))
+
+    # Data browser mode
+    if args.browser:
+        run_data_browser(args)
+    else:
+        run_main_window(args)
 
 
 if __name__ == "__main__":

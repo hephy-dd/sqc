@@ -7,6 +7,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..core.limits import LimitsAggregator
 from ..core.utils import cv_inverse_square
+
+from . import aboutMessage, showContents, showGithub
 from .plotwidget import (
     CStripPlotWidget,
     CVPlotWidget,
@@ -219,12 +221,40 @@ class DataBrowserWindow(QtWidgets.QMainWindow):
 
     visibilityChanged = QtCore.pyqtSignal(bool)
 
-    def __init__(self, context, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
 
         self.setObjectName("dataBrowserWindow")
         self.setWindowTitle("Data Browser")
         self.setWindowFlag(QtCore.Qt.Dialog, True)
+
+        self.quitAction = QtWidgets.QAction("&Quit")
+        self.quitAction.setShortcut("Ctrl+Q")
+        self.quitAction.triggered.connect(self.close)
+
+        self.contentsAction = QtWidgets.QAction("&Contents")
+        self.contentsAction.setShortcut(QtGui.QKeySequence("F1"))
+        self.contentsAction.triggered.connect(self.showContents)
+
+        self.githubAction = QtWidgets.QAction(self)
+        self.githubAction.setText("&GitHub")
+        self.githubAction.triggered.connect(self.showGithub)
+
+        self.aboutQtAction = QtWidgets.QAction("&About Qt")
+        self.aboutQtAction.triggered.connect(self.showAboutQt)
+
+        self.aboutAction = QtWidgets.QAction("&About")
+        self.aboutAction.triggered.connect(self.showAbout)
+
+        self.fileMenu = self.menuBar().addMenu("&File")
+        self.fileMenu.addAction(self.quitAction)
+
+        self.helpMenu = self.menuBar().addMenu("&Help")
+        self.helpMenu.addAction(self.contentsAction)
+        self.helpMenu.addAction(self.githubAction)
+        self.helpMenu.addSeparator()
+        self.helpMenu.addAction(self.aboutQtAction)
+        self.helpMenu.addAction(self.aboutAction)
 
         self.rootPathLineEdit = QtWidgets.QLineEdit(self)
         self.rootPathLineEdit.editingFinished.connect(self.updateRootPath)
@@ -373,3 +403,15 @@ class DataBrowserWindow(QtWidgets.QMainWindow):
         self.stackedWidget.addWidget(widget)
         self.stackedWidget.setCurrentWidget(widget)
         return True
+
+    def showContents(self) -> None:
+        showContents()
+
+    def showGithub(self) -> None:
+        showGithub()
+
+    def showAboutQt(self) -> None:
+        QtWidgets.QMessageBox.aboutQt(self, "About Qt")
+
+    def showAbout(self) -> None:
+        QtWidgets.QMessageBox.about(self, "About", aboutMessage())

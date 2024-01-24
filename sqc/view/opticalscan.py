@@ -95,6 +95,10 @@ class OpticalScanDialog(QtWidgets.QDialog):
         self.autoStartMeasurementCheckBox = QtWidgets.QCheckBox(self)
         self.autoStartMeasurementCheckBox.setText("Start measurements when finished")
 
+        self.keepLightFlashingCheckBox = QtWidgets.QCheckBox(self)
+        self.keepLightFlashingCheckBox.setText("Keep light flashing after scan")
+        self.keepLightFlashingCheckBox.stateChanged.connect(self.setKeepLightFlashing)
+
         self.startMoveButton = QtWidgets.QPushButton(self)
         self.startMoveButton.setText("Scan Position")
         self.startMoveButton.setToolTip("Move to start position relative to first Reference Pad")
@@ -135,9 +139,10 @@ class OpticalScanDialog(QtWidgets.QDialog):
         layout.addLayout(hLayout2, 4, 0)
         layout.setRowStretch(5, 1)
         layout.addWidget(self.autoStartMeasurementCheckBox, 6, 0)
-        layout.addWidget(self.progressBar, 7, 0)
-        layout.addLayout(hLayout3, 8, 0)
-        layout.addWidget(self.stopButton, 9, 0)
+        layout.addWidget(self.keepLightFlashingCheckBox, 7, 0)
+        layout.addWidget(self.progressBar, 8, 0)
+        layout.addLayout(hLayout3, 9, 0)
+        layout.addWidget(self.stopButton, 10, 0)
 
         self.progressRangeChanged.connect(self.progressBar.setRange)
         self.progressValueChanged.connect(self.progressBar.setValue)
@@ -178,6 +183,7 @@ class OpticalScanDialog(QtWidgets.QDialog):
         settings.beginGroup("inspection")
         self.restoreGeometry(settings.value("geometry", QtCore.QByteArray(), QtCore.QByteArray))
         self.setWaitingTime(settings.value("waitingTime", 0.1, float))
+        self.keepLightFlashingCheckBox.setChecked(settings.value("keepLightFlashing", False, bool))
         options = settings.value("options", {}, dict)
         settings.endGroup()
         sensor_type = self.context.parameters.get("sensor_type")
@@ -204,6 +210,7 @@ class OpticalScanDialog(QtWidgets.QDialog):
             "sensor_height": self.sensorHeight(),
         })
         settings.setValue("options", options)
+        settings.setValue("keepLightFlashing", self.keepLightFlashingCheckBox.isChecked())
         settings.setValue("geometry", self.saveGeometry())
         settings.setValue("waitingTime", self.waitingTime())
         settings.endGroup()
@@ -254,7 +261,13 @@ class OpticalScanDialog(QtWidgets.QDialog):
         return self._stopRequested.is_set()
 
     def isAutoStartEnabled(self) -> bool:
-        return self.autoStartMeasurementCheckBox.isChecked()  #TODO thread safe?
+        return self.autoStartMeasurementCheckBox.isChecked()
+
+    def isKeepLightFlashingEnabled(self) -> bool:
+        return self.keepLightFlashingCheckBox.isChecked()
+
+    def setKeepLightFlashing(self, state: int) -> None:
+        self.context.keep_light_flashing = state == QtCore.Qt.Checked  # thread safe bool
 
     def handleAutoStart(self) -> None:
         if self._maybeAutoStart:
@@ -275,6 +288,7 @@ class OpticalScanDialog(QtWidgets.QDialog):
         self.outputLineEdit.setEnabled(True)
         self.openButton.setEnabled(True)
         self.autoStartMeasurementCheckBox.setEnabled(True)
+        self.keepLightFlashingCheckBox.setEnabled(True)
         self.startMoveButton.setEnabled(self.startPosition is not None)
         self.startScanButton.setEnabled(True)
         self.stopButton.setEnabled(False)
@@ -288,6 +302,7 @@ class OpticalScanDialog(QtWidgets.QDialog):
         self.waitingTimeSpinBox.setEnabled(False)
         self.outputLineEdit.setEnabled(False)
         self.autoStartMeasurementCheckBox.setEnabled(False)
+        self.keepLightFlashingCheckBox.setEnabled(False)
         self.startMoveButton.setEnabled(False)
         self.startScanButton.setEnabled(False)
         self.stopButton.setEnabled(True)
@@ -411,6 +426,7 @@ class OpticalScanDialog(QtWidgets.QDialog):
             self.progressRangeChanged.emit(0, maximum_steps + 1)
             self.progressValueChanged.emit(0)
 
+            self.context.station.box_set_test_running(True)
             self.context.station.table_apply_profile("optical_scan")
 
             # Move table down 1 mm
@@ -477,6 +493,8 @@ class OpticalScanDialog(QtWidgets.QDialog):
 
             if not self.isAbortRequested():
                 self._maybeAutoStart = True
+
+            self.context.station.box_set_test_running(self.context.keep_light_flashing)
 
         except Exception as exc:
             self.failed.emit(exc)

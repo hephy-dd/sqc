@@ -127,12 +127,12 @@ class ProfileDialog(QtWidgets.QDialog):
         # Layout
 
         padfileLayout = QtWidgets.QHBoxLayout()
-        padfileLayout.addWidget(self.sequenceLineEdit)
-        padfileLayout.addWidget(self.selectSequenceButton)
+        padfileLayout.addWidget(self.padfileLineEdit)
+        padfileLayout.addWidget(self.selectPadfileButton)
 
         sequenceLayout = QtWidgets.QHBoxLayout()
-        sequenceLayout.addWidget(self.padfileLineEdit)
-        sequenceLayout.addWidget(self.selectPadfileButton)
+        sequenceLayout.addWidget(self.sequenceLineEdit)
+        sequenceLayout.addWidget(self.selectSequenceButton)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.nameLabel)
