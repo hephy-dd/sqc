@@ -1,13 +1,14 @@
 import logging
 import traceback
 import os
-import webbrowser
 from pathlib import Path
 from typing import List, Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..settings import Settings
+
+from . import aboutMessage, showContents
 from .dashboard import DashboardWidget, formatTemperature, formatHumidity
 from .profiles import ProfilesDialog, readProfiles
 from .resources import ResourcesDialog
@@ -17,17 +18,8 @@ from .loggerwidget import QueuedLoggerWidget
 from .alignment import AlignmentDialog
 from .sequence import SequenceController
 from .recover import RecoverDialog
-# from .measurement import CreateMeasurementDialog
 
 __all__ = ["MainWindow"]
-
-APP_TITLE = "SQC"
-APP_COPY = "Copyright &copy; 2022-2023 HEPHY"
-APP_LICENSE = "This software is licensed under the GNU General Public License v3.0"
-APP_DECRIPTION = """Sensor Quality Control (SQC) characterises a sample of
-sensors from each batch delivered by the producer and ensures that they
-fully satisfy the specifications so they can be used to build modules for
-the CMS Tracker."""
 
 logger = logging.getLogger(__name__)
 
@@ -115,6 +107,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.recoverAction.setStatusTip("Safely recover station by ramping down SMUs, discarge and releasing switches")
         self.recoverAction.triggered.connect(self.showRecoverStation)
 
+        self.boxFlashingLightAction = QtWidgets.QAction("Box Flashing Light")
+        self.boxFlashingLightAction.setIcon(QtGui.QIcon.fromTheme("icons:flashing-light.svg"))
+        self.boxFlashingLightAction.setStatusTip("Toggle box flashing light")
+        self.boxFlashingLightAction.setCheckable(True)
+        self.boxFlashingLightAction.toggled.connect(self.toggleBoxFlashingLight)
+
         self.boxLightAction = QtWidgets.QAction("Box Light")
         self.boxLightAction.setIcon(QtGui.QIcon.fromTheme("icons:light.svg"))
         self.boxLightAction.setStatusTip("Toggle box light")
@@ -126,7 +124,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.identifyAction.setStatusTip("Identify Instruments")
         self.identifyAction.setVisible(False)
         self.identifyAction.triggered.connect(self.showIdentify)
-
 
         self.contentsAction = QtWidgets.QAction("&Contents")
         self.contentsAction.setShortcut(QtGui.QKeySequence("F1"))
@@ -164,6 +161,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.toolsMenu = self.menuBar().addMenu("&Tools")
         self.toolsMenu.addAction(self.recoverAction)
+        self.toolsMenu.addAction(self.boxFlashingLightAction)
         self.toolsMenu.addAction(self.boxLightAction)
         self.toolsMenu.addAction(self.identifyAction)
 
@@ -343,13 +341,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     @QtCore.pyqtSlot()
     def newMeasurement(self):
-        # dialog = CreateMeasurementDialog(self)
-        # dialog.setOutputPath(self.dashboardWidget.outputPath())
-        # dialog.setOperatorName(self.dashboardWidget.operatorName())
-        # dialog.exec()
-        # if dialog.result() == dialog.Accepted:
-        #     self.dashboardWidget.setOutputPath(dialog.outputPath())
-        #     self.dashboardWidget.setOperatorName(dialog.operatorName())
         result = QtWidgets.QMessageBox.question(
             self,
             "New Measurement",
@@ -433,6 +424,7 @@ class MainWindow(QtWidgets.QMainWindow):
     def showAlignmentDialog(self) -> None:
         self.dashboardWidget.updateContext()
         name = self.dashboardWidget.sensorProfileName()
+        self.context.keep_light_flashing = False  # TODO
         dialog = AlignmentDialog(self.context)
         try:
             dialog.setSensorName(name)
@@ -442,6 +434,10 @@ class MainWindow(QtWidgets.QMainWindow):
             dialog.setJoystickEnabled(False)
             dialog.exec()
             dialog.syncSettings()
+            try:
+                self.boxFlashingLightAction.setChecked(self.context.keep_light_flashing or self.boxFlashingLightAction.isChecked())  # TODO
+            except Exception:
+                ...
             self.handleAutoStart()
         except Exception as exc:
             logger.exception(exc)
@@ -451,6 +447,13 @@ class MainWindow(QtWidgets.QMainWindow):
     def showRecoverStation(self) -> None:
         dialog = RecoverDialog(self.context)
         dialog.run()
+
+    def toggleBoxFlashingLight(self, state) -> None:
+        try:
+            station = self.context.station
+            station.box_set_test_running(state == True)
+        except Exception as exc:
+            logger.exception(exc)
 
     def showIdentify(self) -> None:
         try:
@@ -474,16 +477,13 @@ class MainWindow(QtWidgets.QMainWindow):
     # Help
 
     def showContents(self) -> None:
-        contentsUrl = QtWidgets.QApplication.instance().property("ContentsUrl")  # type: ignore
-        if contentsUrl:
-            webbrowser.open(contentsUrl)
+        showContents()
 
     def showAboutQt(self) -> None:
         QtWidgets.QMessageBox.aboutQt(self, "About Qt")
 
     def showAbout(self) -> None:
-        version = QtWidgets.QApplication.applicationVersion()  # type: ignore
-        QtWidgets.QMessageBox.about(self, "About", f"<h1>{APP_TITLE}</h1><p>Version {version}</p><p>{APP_DECRIPTION}</p><p>{APP_COPY}</p><p>{APP_LICENSE}</p>")
+        QtWidgets.QMessageBox.about(self, "About", aboutMessage())
 
     def showLockedNotification(self) -> None:
         QtWidgets.QMessageBox.warning(self, "Active Measurement", "A measurement is active. Stop the measurement before quitting the application.")
@@ -617,6 +617,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stopAction.setEnabled(False)
         self.alignmentAction.setEnabled(True)
         self.recoverAction.setEnabled(True)
+        self.boxFlashingLightAction.setEnabled(True)
+        self.boxFlashingLightAction.setChecked(False)
         self.boxLightAction.setEnabled(True)
         self.dashboardWidget.setLocked(False)
         self.dashboardWidget.setInputsLocked(False)
@@ -641,6 +643,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.stopAction.setEnabled(True)
         self.alignmentAction.setEnabled(False)
         self.recoverAction.setEnabled(False)
+        self.boxFlashingLightAction.setEnabled(False)
+        self.boxFlashingLightAction.setChecked(True)
         self.boxLightAction.setEnabled(False)
         self.boxLightAction.setChecked(False)
         self.loggerWidget.showRecentRecords()
