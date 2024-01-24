@@ -8,7 +8,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from ..core.limits import LimitsAggregator
 from ..core.utils import cv_inverse_square
 
-from . import aboutMessage, showContents
+from . import aboutMessage, showContents, showGithub
 from .plotwidget import (
     CStripPlotWidget,
     CVPlotWidget,
@@ -236,6 +236,10 @@ class DataBrowserWindow(QtWidgets.QMainWindow):
         self.contentsAction.setShortcut(QtGui.QKeySequence("F1"))
         self.contentsAction.triggered.connect(self.showContents)
 
+        self.githubAction = QtWidgets.QAction(self)
+        self.githubAction.setText("&GitHub")
+        self.githubAction.triggered.connect(self.showGithub)
+
         self.aboutQtAction = QtWidgets.QAction("&About Qt")
         self.aboutQtAction.triggered.connect(self.showAboutQt)
 
@@ -247,6 +251,7 @@ class DataBrowserWindow(QtWidgets.QMainWindow):
 
         self.helpMenu = self.menuBar().addMenu("&Help")
         self.helpMenu.addAction(self.contentsAction)
+        self.helpMenu.addAction(self.githubAction)
         self.helpMenu.addSeparator()
         self.helpMenu.addAction(self.aboutQtAction)
         self.helpMenu.addAction(self.aboutAction)
@@ -401,6 +406,9 @@ class DataBrowserWindow(QtWidgets.QMainWindow):
 
     def showContents(self) -> None:
         showContents()
+
+    def showGithub(self) -> None:
+        showGithub()
 
     def showAboutQt(self) -> None:
         QtWidgets.QMessageBox.aboutQt(self, "About Qt")

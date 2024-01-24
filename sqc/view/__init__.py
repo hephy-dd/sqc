@@ -9,7 +9,8 @@ APP_DECRIPTION: str = """Sensor Quality Control (SQC) characterises a sample of
 sensors from each batch delivered by the producer and ensures that they
 fully satisfy the specifications so they can be used to build modules for
 the CMS Tracker."""
-APP_CONTENTS_URL: str = "https://github.com/hephy-dd/sqc"
+APP_CONTENTS_URL: str = "https://hephy-dd.github.io/sqc/"
+APP_GITHUB_URL: str = "https://github.com/hephy-dd/sqc"
 
 
 def aboutMessage() -> str:
@@ -20,7 +21,13 @@ def aboutMessage() -> str:
 def showContents() -> None:
     """Opens contents URL in default web browser."""
     try:
-        if APP_CONTENTS_URL:
-            webbrowser.open(APP_CONTENTS_URL)
+        webbrowser.open(APP_CONTENTS_URL)
+    except Exception:
+        ...
+
+def showGithub() -> None:
+    """Opens Github URL in default web browser."""
+    try:
+        webbrowser.open(APP_GITHUB_URL)
     except Exception:
         ...
