@@ -506,6 +506,8 @@ class SequenceStrategy:
 
         logger.info("-------- #%s %s --------", strip, strip_item.fullName())
 
+        result = False
+
         try:
             result = self.auto_repeat_measurement(strip, strip_item)
         except ComplianceError:
@@ -520,6 +522,7 @@ class SequenceStrategy:
                 self.context.set_item_state(strip_item, strip_item.AbortedState)
             else:
                 self.context.set_item_state(strip_item, strip_item.SuccessState)
+
         return result
 
     def auto_repeat_measurement(self, strip: str, item) -> bool:
