@@ -43,3 +43,6 @@ emulators:
     module: keithley.k2470
     port: 12001
     request_delay: 0.001
+  table2:
+    module: itk.corvustt
+    port: 12008
