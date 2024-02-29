@@ -1,0 +1,176 @@
+version --> TANGO-MINI3, Version 1.72, Feb 14 2020 , 11:50:11
+SwitchBoard Version 2.07 Service Print: 04.01.2023, 14:57
+---------------------------------------------------------
+Windows 10 (10.0.19044) 64 Bit
+---------------------------------------------------------
+
+- Power Amplifier 2 [Y] is switched off (by axis -1 instruction)
+- Power Amplifier 3 [Z] is switched off (by axis -1 instruction)
+- Axis 2 [Y] is set to power off (by axis -1 instruction)
+- Axis 3 [Z] is set to power off (by axis -1 instruction)
+- CAL is not yet executed on axis Y
+- CAL is not yet executed on axis Z
+- Info: AUX mini +24 Volt VBus is not switched on
+ 
+USB         : connected
+Communicates: via USB
+ 
+err         : 0
+help        : ERROR 0,no error
+uptime -2   : 00h 18m 25s
+version     : TANGO-MINI3, Version 1.72, Feb 14 2020 , 11:50:11
+ver         : Vers:LS31.00.038
+version M4  : 1.00
+readsn      : 171983003
+det   [hex] : 0x00038
+= Universal Encoder
+= 3 Axes
+hdi -1      : 16 100 [No device connected]
+lockaxis    : 0 0 0
+lock        : 0000000000000000
+lockstate   : 0000000000000000 0000000000000000 0000000000000000 
+Vmot  [V]   : 24.3
+I_in  [A]   : 0.55 (peak 0.80)
+Power [W]   : 13.3
+Power state : ASB power good
+PSE state   : ON
+PSE input   : 1
+Upse  [V]   : 5.1
+pa          : 1
+pa -1       : 1 0 0
+stop        : 0
+stoppol     : 0
+adigintyp   : 1111
+adiginfunc  : 0 0 1 2
+Vcc5  [V]   : 5.1
+Vhdi  [V]   : 5.1
+Vbus  [V]   : 0.1
+configvbus  : 0
+Vbus state  : 0 (off)
+Venc state  : 1 (powered)
+brake       : 0 0 0
+Vbrake [V]  : 0.6
+maxaxis     : 3
+axis        : 1 -1 -1
+joy         : 0
+joydir      : 0 0 0
+hdidir      : 00000000
+joycurve    : 1 0 0
+joywindow   : 14
+joyvel      : 2.000 10.000 10.000
+hdimode     : 1000000000000000
+keymode     : 0
+zwheel      : 0
+zwtravel    : 0.100 0.010 1.000
+zwfactor    : 1
+zwaxis      : z
+hwfactor    : 1.00 1.00 1.00
+hwfactorb   : 14.00 14.00 14.00
+tbfactor    : 1.00 1.00 1.00
+tvr         : 0 0 0
+tvf         : 1.00 1.00 1.00
+speed       : 0.000 0.000 0.000
+autostatus  : 1
+status      : OK...
+statusaxis  : @@@-.-
+R_state[X]  : R_MANUELL
+R_state[Y]  : R_MANUELL
+R_state[Z]  : R_MANUELL
+axisdir     : 1 0 0
+corrst      : 0 0 0
+pitch       : 1.0000 1.0000 1.0000
+gear        : 1.000 1.000 1.000
+delay  [ms] : 0
+pause  [ms] : 0
+vel         : 2.000 10.000 10.000
+velfac      : 1.00 1.00 1.00
+secvel[mm/s]: 5.00 10.00 10.00
+accel [m/s²]: 0.20 0.20 0.20
+stopaccel   : 1.00 1.00 1.00
+accelfunc   : 0 0 0
+motorsteps  : 400 200 200
+motortable  : 0 0 0
+mot corr X  : from TANGO motcp settings
+mot corr Y  : from TANGO motcp settings
+mot corr Z  : from TANGO motcp settings
+motcpa      : 0 0 0
+motcpb      : 0 0 0
+motcpc      : 0 0 0
+motcps      : 0 0 0
+motcr       : 1.0000 1.0000 1.0000
+maxcur [A]  : 1.25 1.25 1.25
+cur    [A]  : 1.20 1.00 1.00
+reduction   : 1.00 1.00 1.00
+curdelay[ms]: 0 0 0
+ecomove [%] : 0 0 0
+iscur   [A] : 1.20 0.00 0.00
+extmode     : 0
+dim         : 1 2 2
+usteps      : 819200
+scanmode    : 0
+modulomode  : 0 0 0
+maxpos      : 1300000.0 2600.0000 2600.0000 
+pos         : 14347.8 0.0000 0.0000 
+distance    : 0.0 0.0000 0.0000 
+caliboffset : 0.0 0.0000 0.0000 
+rmoffset    : 0.0 0.0000 0.0000 
+calbspeed -1: 50.000000 50.000000 50.000000
+caldir      : 0 0 0
+calmode     : 3 0 0
+callrnpos   : 0 0 0 
+calrequired : 1 0 0
+calrefspeed : 500.000000 500.000000 500.000000
+refdir      : 0 0 0
+swact       : 1 0 1 1 0 1 1 0 1
+swpol       : 0 0 0 0 0 0 0 0 0
+swtyp       : 1 1 1 1 1 1 1 1 1
+swdir       : 1 0 0
+readsw      : 000000000000
+limctr      : 1 1 1
+nosetlimit  : 0 0 0
+statuslimit : A---D-----------
+lim[x]      : 0.0 28695.6
+lim[y]      : -2600.0000 2600.0000
+lim[z]      : -2600.0000 2600.0000
+lim[a]      : -2600.0000 2600.0000
+enc         : 0 0 0
+encmask     : 0 0 0
+encperiod   : 0.5000 0.5000 0.5000
+encdir      : 1 0 0
+encttl      : 0 0 0
+enctype     : 0 0 0
+enctype (is): 0 0 0
+encref      : 0 0 0
+encnas      : 0 0 0
+encpos -1   : 0 0 0
+configencpos: 0 0 0
+encvel      : 2.000 2.000 2.000
+encerr      : e e e
+encrefstatus: 1 1 1
+encnasstatus: 1 1 1
+encamp[%]   :    0    0    0
+encsync     : 0 0 0
+encsync -1  : 0 0 0  0 0 0  0 0 0
+sync mode   : analog signal
+mrq         : 0 0 0
+ctr         : 0 0 0
+ctrff       : 2.0 2.0 2.0 2.0 2.0 2.0
+twi         : 1.0 0.0010 0.0010 
+ctrd[ms]    : 100 100 100
+ctrt[ms]    : 1000
+ctrc[ms]    : 3
+ctrs        : 200.0 0.2000 0.2000 
+ctrsm       : 1 1 1
+ctrstatus   : 0 0 0
+ctrstatus 0 : 0 0 0 0 0 0
+stout       : 0
+noled       : 0
+updelay [ms]: -1000
+snapshot    : not configured
+trigger     : not configured
+etsmode     : 4
+etspresent  : 0000
+curvector      : is activated, threshold = 21.7V, index 2
+curvector      : was restored
+configcurvector: 1
+END_SERVICE_PRINT.
