@@ -20,7 +20,7 @@ create_versionfile(
     company_name="HEPHY",
     file_description="Sensor Quality Control for the CMS Tracker",
     internal_name="SQC",
-    legal_copyright="Copyright © 2022-2023 HEPHY. All rights reserved.",
+    legal_copyright="Copyright © 2022-2024 HEPHY. All rights reserved.",
     original_filename=filename,
     product_name="SQC",
 )

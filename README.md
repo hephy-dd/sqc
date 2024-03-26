@@ -39,3 +39,7 @@ Run comet socket instrument emulators specified in `emulators.yaml` file.
 ```bash
 python -m comet.emulators -f emulators.yaml
 ```
+
+## License
+
+SQC is licensed under the [GNU General Public License Version 3](LICENSE).
