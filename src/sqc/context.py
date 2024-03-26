@@ -106,7 +106,7 @@ class Context(QtCore.QObject):
     def reset_data(self) -> None:
         self._data = {}
         self._parameters["open_corrections"] = {}
-        self._statistics = Statistics()
+        ###self._statistics = Statistics()
 
     def get_open_correction(self, namespace: str, type: str, name: str, key: str) -> float:
         open_corrections = self._parameters.get("open_corrections", {})

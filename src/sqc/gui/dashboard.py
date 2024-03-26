@@ -99,7 +99,7 @@ class DashboardWidget(QtWidgets.QWidget):
 
         self.sequenceLabel = QtWidgets.QLabel("Sequence")
 
-        self.sequenceWidget = SequenceWidget(self)
+        self.sequenceWidget = SequenceWidget(self.context, self)
         self.sequenceWidget.currentItemChanged.connect(self.loadSequenceItemParameters)
 
         # Parameters
