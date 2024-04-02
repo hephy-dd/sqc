@@ -7,6 +7,8 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from ..core.utils import parse_strip_expression, normalize_strip_expression
 from ..strategy import SequenceStrategy
 
+from .badstrips import BadStripSelectDialog
+
 __all__ = [
     "SequenceItem",
     "SequenceWidget",
@@ -223,8 +225,9 @@ class SequenceItem(QtWidgets.QTreeWidgetItem):
 
 class SequenceWidget(QtWidgets.QTreeWidget):
 
-    def __init__(self, parent=None):
+    def __init__(self, context, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
+        self.context = context
         self.setLocked(False)
         headerItem = QtWidgets.QTreeWidgetItem()
         headerItem.setText(SequenceItem.NameColumn, "Measurement")
@@ -307,6 +310,10 @@ class SequenceWidget(QtWidgets.QTreeWidget):
             restoreStripsAction.setEnabled(False)
             restoreStripsAction.setToolTip("Restore default strips from config for selected measurement")
 
+            selectBadStripsAction = menu.addAction("Select Bad Strips")
+            selectBadStripsAction.setEnabled(False)
+            selectBadStripsAction.setToolTip("Select bad strips that failed in measurements")
+
             menu.addSeparator()
 
             restoreIntervalsAction = menu.addAction("Default Intervals")
@@ -319,16 +326,24 @@ class SequenceWidget(QtWidgets.QTreeWidget):
 
             if item.allChildren():
                 restoreIntervalsAction.setEnabled(True)
+                selectBadStripsAction.setEnabled(True)
                 restoreStripsAction.setEnabled(True)
                 resetIntervalsAction.setEnabled(True)
 
             res = menu.exec(event.globalPos())
             if res == restoreStripsAction:
                 item.setStrips(item.defaultStrips())
-            if res == resetIntervalsAction:
+            elif res == selectBadStripsAction:
+                dialog = BadStripSelectDialog(self)
+                dialog.setStatistics(self.context.statistics)
+                dialog.readSettings()
+                if dialog.exec() == dialog.Accepted:
+                    item.setStrips(dialog.selectedStrips())
+                    dialog.writeSettings()
+            elif res == resetIntervalsAction:
                 for child in item.allChildren():
                     child.setInterval(1)
-            if res == restoreIntervalsAction:
+            elif res == restoreIntervalsAction:
                 for child in item.allChildren():
                     child.setInterval(child.defaultInterval())
 

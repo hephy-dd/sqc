@@ -12,8 +12,8 @@ from . import __version__
 from .context import Context
 from .station import Station
 
-from .view.mainwindow import MainWindow
-from .view.databrowser import DataBrowserWindow
+from .gui.mainwindow import MainWindow
+from .gui.databrowser import DataBrowserWindow
 
 from .plugins import Plugin
 from .plugins.json_writer import JSONWriterPlugin
