@@ -28,7 +28,7 @@ class BadStripSelectDialog(QtWidgets.QDialog):
         self.buttonBox.rejected.connect(self.reject)
 
         layout = QtWidgets.QVBoxLayout(self)
-        layout.addWidget(QtWidgets.QLabel("Re-measure Count"))
+        layout.addWidget(QtWidgets.QLabel("Minimal Re-Measure Count"))
         layout.addWidget(self.remeasureCountSpinBox)
         layout.addWidget(QtWidgets.QLabel("Preview"))
         layout.addWidget(self.previewTreeWidget)

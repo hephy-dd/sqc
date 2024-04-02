@@ -34,11 +34,15 @@ sqc --browser /home/jdoe/sqc
 
 ## Run Emulators
 
-Run comet socket instrument emulators specified in `emulators.yaml` file.
+For development and testing run [comet](https://github.com/hephy-dd/comet) instrument emulator sockets specified in `emulators.yaml` file.
 
 ```bash
-python -m comet.emulators -f emulators.yaml
+python -m comet.emulator -f emulators.yaml
 ```
+
+## Binaries
+
+See for pre-built Windows binaries in the [releases](https://github.com/hephy-dd/sqc/releases) section.
 
 ## License
 
