@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2024-04-03
+
+### Fixed
+- uEye camera initialization fails in Python 3.11 (#47).
+
 ## [0.9.0] - 2024-04-02
 
 ### Added
@@ -135,7 +140,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Documentation of measurement configuration parameters.
 
-[Unreleased]: https://github.com/hephy-dd/sqc/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/hephy-dd/sqc/compare/0.9.1...HEAD
+[0.9.1]: https://github.com/hephy-dd/sqc/compare/0.9.0...0.9.1
 [0.9.0]: https://github.com/hephy-dd/sqc/compare/0.8.1...0.9.0
 [0.8.1]: https://github.com/hephy-dd/sqc/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/hephy-dd/sqc/compare/0.7.1...0.8.0
