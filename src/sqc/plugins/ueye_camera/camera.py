@@ -191,7 +191,7 @@ class Camera:
 
     def set_auto_parameter(self, param):
         check(ueye.is_SetAutoParameter(
-            ctypes.c_int(self.h_cam),
+            self.h_cam,
             ctypes.c_int(param),
             ctypes.c_double(1),
             ctypes.c_double(0)
