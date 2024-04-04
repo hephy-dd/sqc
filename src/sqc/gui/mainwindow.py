@@ -185,6 +185,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.setCentralWidget(self.dashboardWidget)
 
         self.sequenceController = SequenceController(self.context, self)
+        self.sequenceController.started.connect(self.sequenceStarted)
+        self.sequenceController.finished.connect(self.sequenceFinished)
         self.sequenceController.failed.connect(self.context.handle_exception)
 
         # Data Browser
@@ -660,3 +662,11 @@ class MainWindow(QtWidgets.QMainWindow):
         spacer = QtWidgets.QSpacerItem(448, 0, QtWidgets.QSizePolicy.Minimum, QtWidgets.QSizePolicy.Expanding)
         dialog.layout().addItem(spacer, dialog.layout().rowCount(), 0, 1, dialog.layout().columnCount())
         dialog.exec()
+
+    # Callbacks
+
+    def sequenceStarted(self) -> None:
+        self.pluginManager.dispatch("sequenceStarted", (self,))
+
+    def sequenceFinished(self) -> None:
+        self.pluginManager.dispatch("sequenceFinished", (self,))
