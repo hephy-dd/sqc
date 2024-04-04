@@ -1,7 +1,6 @@
 import logging
 
 from sqc.core.camera import camera_registry
-from sqc.plugins import Plugin
 
 __all__ = ["UEyeCameraPlugin"]
 
@@ -18,15 +17,19 @@ def load_camera_cls():
     return UEyeCamera
 
 
-class UEyeCameraPlugin(Plugin):
+def create_camera(self, config):
+    return load_camera_cls()(config)
 
-    def create_camera(self, config):
-        return load_camera_cls()(config)
 
-    def install(self, window):
+class UEyeCameraPlugin:
+
+    def install(self, window) -> None:
         if load_camera_cls() is not None:
-            camera_registry["ueye"] = self.create_camera
+            camera_registry["ueye"] = create_camera
 
-    def uninstall(self, window):
+    def uninstall(self, window) -> None:
         if "ueye" in camera_registry:
             del camera_registry["ueye"]
+
+    def beforePreferences(self, dialog) -> None:
+        dialog.cameraWidget.addCamera("ueye")

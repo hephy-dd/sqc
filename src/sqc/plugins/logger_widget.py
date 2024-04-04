@@ -5,7 +5,34 @@ from typing import Callable, Iterable, List, Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-__all__ = ["LoggerWidget", "QueuedLoggerWidget"]
+__all__ = ["LoggerWidgetPlugin"]
+
+
+class LoggerWidgetPlugin:
+
+    def install(self, window) -> None:
+        self.loggerWidget = QueuedLoggerWidget()
+        self.loggerWidget.addLogger(logging.getLogger())
+
+        self.loggerDockWidget = QtWidgets.QDockWidget()
+        self.loggerDockWidget.setObjectName("logger")
+        self.loggerDockWidget.setWindowTitle("Logger")
+        self.loggerDockWidget.setFloating(False)
+        self.loggerDockWidget.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable)
+        self.loggerDockWidget.setWidget(self.loggerWidget)
+        window.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.loggerDockWidget)
+
+        self.loggerAction = self.loggerDockWidget.toggleViewAction()
+        self.loggerAction.setIcon(QtGui.QIcon("icons:view-logger.svg"))
+        self.loggerAction.setChecked(False)
+
+        window.viewMenu.addAction(self.loggerAction)
+
+    def uninstall(self, window) -> None:
+        self.loggerWidget.removeLogger(logging.getLogger())
+        window.removeDockWidget(self.loggerDockWidget)
+
+        window.viewMenu.removeAction(self.loggerAction)
 
 
 class Handler(logging.Handler):

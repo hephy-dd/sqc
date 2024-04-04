@@ -180,7 +180,7 @@ class ProfileDialog(QtWidgets.QDialog):
             self.resize(320, 128)
         settings.endGroup()
 
-    def syncSettings(self) -> None:
+    def writeSettings(self) -> None:
         settings = QtCore.QSettings()
         settings.beginGroup("ProfileDialog")
         settings.setValue("geometry", self.saveGeometry())
@@ -269,7 +269,7 @@ class ProfilesDialog(QtWidgets.QDialog):
         settings.endArray()
         settings.endGroup()
 
-    def syncSettings(self) -> None:
+    def writeSettings(self) -> None:
         settings = QtCore.QSettings()
         settings.beginGroup("ProfilesDialog")
         settings.setValue("geometry", self.saveGeometry())
@@ -300,7 +300,7 @@ class ProfilesDialog(QtWidgets.QDialog):
         dialog.setWindowTitle("Add Profile")
         dialog.readSettings()
         dialog.exec()
-        dialog.syncSettings()
+        dialog.writeSettings()
         if dialog.result() == ProfileDialog.Accepted:
             item = ProfileTreeItem()
             item.setName(dialog.profileName())
@@ -322,7 +322,7 @@ class ProfilesDialog(QtWidgets.QDialog):
             dialog.setSequence(item.sequence())
             dialog.readSettings()
             dialog.exec()
-            dialog.syncSettings()
+            dialog.writeSettings()
             if dialog.result() == ProfileDialog.Accepted:
                 item.setName(dialog.profileName())
                 item.setPadfile(dialog.padfile())

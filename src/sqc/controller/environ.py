@@ -1,8 +1,9 @@
-import copy
 import logging
 import queue
 import threading
 import time
+from copy import deepcopy
+from typing import Optional
 
 from PyQt5 import QtCore
 
@@ -20,14 +21,14 @@ class EnvironController(QtCore.QObject):
 
     dataChanged = QtCore.pyqtSignal(dict)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent: Optional[QtCore.QObject] = None) -> None:
         super().__init__(parent)
-        self.interval = 2.0
+        self.interval: float = 2.0
         self.dataChanged.connect(self._pc_data_available)
 
-        self._data = {}
-        self._shutdown = threading.Event()
-        self._queue = queue.Queue()
+        self._data: dict = {}
+        self._shutdown: threading.Event = threading.Event()
+        self._queue: queue.Queue = queue.Queue()
 
         self._lock: threading.RLock = threading.RLock()
         self._thread: threading.Thread = threading.Thread(target=self.eventLoop)
@@ -42,14 +43,14 @@ class EnvironController(QtCore.QObject):
 
     def snapshot(self) -> dict:
         with self._lock:
-            return copy.deepcopy(self._data)
+            return deepcopy(self._data)
 
     def _pc_data(self, resource):
         data = resource.get_data()
         logger.debug("Environment data: %s", data)
         self.dataChanged.emit(data)
 
-    def _pc_data_available(self, data):
+    def _pc_data_available(self, data: dict) -> None:
         with self._lock:
             self._data.update(data)
 

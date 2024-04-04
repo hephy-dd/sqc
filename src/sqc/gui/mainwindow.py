@@ -7,6 +7,7 @@ from typing import List, Optional
 from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..settings import Settings
+from ..core.pluginmanager import PluginManager
 
 from . import aboutMessage, showContents, showGithub
 from .dashboard import DashboardWidget, formatTemperature, formatHumidity
@@ -14,7 +15,6 @@ from .profiles import ProfilesDialog, readProfiles
 from .resources import ResourcesDialog
 from .preferences import PreferencesDialog
 from .databrowser import DataBrowserWindow
-from .loggerwidget import QueuedLoggerWidget
 from .alignment import AlignmentDialog
 from .sequence import SequenceController
 from .recover import RecoverDialog
@@ -34,19 +34,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.context = context
 
-        self.plugins = []
-
-        # Dock widgets
-
-        self.loggerWidget = QueuedLoggerWidget(self)
-
-        self.loggerDockWidget = QtWidgets.QDockWidget(self)
-        self.loggerDockWidget.setObjectName("logger")
-        self.loggerDockWidget.setWindowTitle("Logger")
-        self.loggerDockWidget.setFloating(False)
-        self.loggerDockWidget.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable)
-        self.loggerDockWidget.setWidget(self.loggerWidget)
-        self.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.loggerDockWidget)
+        self.pluginManager = PluginManager()
 
         # Actions
 
@@ -76,10 +64,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dataBrowserAction.setCheckable(True)
         self.dataBrowserAction.setChecked(False)
         self.dataBrowserAction.triggered.connect(self.setDataBrowserVisible)
-
-        self.loggerAction = self.loggerDockWidget.toggleViewAction()
-        self.loggerAction.setIcon(QtGui.QIcon("icons:view-logger.svg"))
-        self.loggerAction.setChecked(False)
 
         self.startAction = QtWidgets.QAction("&Start")
         self.startAction.setStatusTip("Run measurement sequence")
@@ -154,7 +138,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.viewMenu = self.menuBar().addMenu("&View")
         self.viewMenu.addAction(self.dataBrowserAction)
-        self.viewMenu.addAction(self.loggerAction)
 
         self.sequenceMenu = self.menuBar().addMenu("&Sequence")
         self.sequenceMenu.addAction(self.startAction)
@@ -258,7 +241,8 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.stateMachine.start()
 
-    def readSettings(self):
+    def readSettings(self) -> None:
+        self.pluginManager.dispatch("beforeReadSettings", (QtCore.QSettings(),))
         try:
             settings = QtCore.QSettings()
             settings.beginGroup("mainwindow")
@@ -277,7 +261,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dashboardWidget.readSettings()
         self.dataBrowserWindow.readSettings()
 
-    def syncSettings(self):
+        self.pluginManager.dispatch("afterReadSettings", (QtCore.QSettings(),))
+
+    def writeSettings(self) -> None:
+        self.pluginManager.dispatch("beforeWriteSettings", (QtCore.QSettings(),))
+
         settings = QtCore.QSettings()
         settings.beginGroup("mainwindow")
 
@@ -286,8 +274,10 @@ class MainWindow(QtWidgets.QMainWindow):
 
         settings.endGroup()
 
-        self.dashboardWidget.syncSettings()
-        self.dataBrowserWindow.syncSettings()
+        self.dashboardWidget.writeSettings()
+        self.dataBrowserWindow.writeSettings()
+
+        self.pluginManager.dispatch("afterWriteSettings", (QtCore.QSettings(),))
 
     # Lock
 
@@ -299,20 +289,14 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # Plugins
 
-    def installPlugin(self, plugin):
-        try:
-            self.plugins.append(plugin)
-            plugin.install(self)
-        except Exception as exc:
-            logger.exception(exc)
+    def registerPlugin(self, plugin) -> None:
+        self.pluginManager.register_plugin(plugin)
 
-    def uninstallPlugin(self, plugin):
-        if plugin in self.plugins:
-            try:
-                plugin.uninstall(self)
-                self.plugins.remove(plugin)
-            except Exception as exc:
-                logger.exception(exc)
+    def installPlugins(self):
+        self.pluginManager.dispatch("install", (self,))
+
+    def uninstallPlugins(self):
+        self.pluginManager.dispatch("uninstall", (self,))
 
     # Shutdown
 
@@ -320,14 +304,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dashboardWidget.shutdown()
         self.sequenceController.shutdown()
         self.stateMachine.stop()
-
-    # Logger
-
-    def addLogger(self, logger: logging.Logger) -> None:
-        self.loggerWidget.addLogger(logger)
-
-    def removeLogger(self, logger: logging.Logger) -> None:
-        self.loggerWidget.removeLogger(logger)
 
     # Overloaded slots
 
@@ -367,7 +343,7 @@ class MainWindow(QtWidgets.QMainWindow):
             dialog = ProfilesDialog(self)
             dialog.readSettings()
             dialog.exec()
-            dialog.syncSettings()
+            dialog.writeSettings()
             # TODO
             with QtCore.QSignalBlocker(self.dashboardWidget.profileComboBox):
                 self.dashboardWidget.profileComboBox.clear()
@@ -387,7 +363,7 @@ class MainWindow(QtWidgets.QMainWindow):
             resources = Settings().resources()
             dialog.setResources(resources)
             dialog.exec()
-            dialog.syncSettings()
+            dialog.writeSettings()
             if dialog.result() == dialog.Accepted:
                 Settings().setResources(dialog.resources())
         except Exception as exc:
@@ -398,11 +374,13 @@ class MainWindow(QtWidgets.QMainWindow):
         try:
             dialog = PreferencesDialog(self)
             dialog.readSettings()
+            self.pluginManager.dispatch("beforePreferences", (dialog,))
             dialog.loadValues()
             dialog.exec()
             if dialog.result() == dialog.Accepted:
                 dialog.saveValues()
-            dialog.syncSettings()
+            self.pluginManager.dispatch("afterPreferences", (dialog,))
+            dialog.writeSettings()
         except Exception as exc:
             logger.exception(exc)
 
@@ -410,9 +388,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def setDataBrowserVisible(self, checked: bool) -> None:
         self.dataBrowserWindow.setVisible(checked)
-
-    def setLoggerVisible(self, checked: bool) -> None:
-        self.loggerDockWidget.setVisible(checked)
 
     # Sequence
 
@@ -438,7 +413,7 @@ class MainWindow(QtWidgets.QMainWindow):
             dialog.setLightsOn()
             dialog.setJoystickEnabled(False)
             dialog.exec()
-            dialog.syncSettings()
+            dialog.writeSettings()
             try:
                 self.boxFlashingLightAction.setChecked(self.context.keep_light_flashing or self.boxFlashingLightAction.isChecked())  # TODO
             except Exception:
@@ -655,7 +630,6 @@ class MainWindow(QtWidgets.QMainWindow):
         self.boxFlashingLightAction.setChecked(True)
         self.boxLightAction.setEnabled(False)
         self.boxLightAction.setChecked(False)
-        self.loggerWidget.showRecentRecords()
         self.dashboardWidget.setLocked(True)
         self.dashboardWidget.setInputsLocked(True)
         self.dashboardWidget.updateContext()

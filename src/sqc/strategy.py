@@ -26,12 +26,12 @@ def enabled_items(items):
 
 class SequenceController:
 
-    def __init__(self, context):
+    def __init__(self, context) -> None:
         self.context = context
         self.contacts = ContactHandler(context.padfile)
         self.gradual_z_approach: bool = False
 
-    def initialize(self):
+    def initialize(self) -> None:
         self.context.set_message("Initialize...")
         self.context.create_timestamp()  # new timestamp for measurement!
         self.context.set_progress(0, 0, 0)
@@ -53,7 +53,7 @@ class SequenceController:
 
         self.safe_recover_table()
 
-    def finalize(self):
+    def finalize(self) -> None:
         self.context.set_message("Finalize...")
         self.context.set_progress(0, 0, 0)
         self.context.set_current_item(None)

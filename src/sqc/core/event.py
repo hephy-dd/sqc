@@ -7,7 +7,7 @@ class Event:
 
     __slots__ = ["targets"]
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.targets: List[Callable] = []
 
     def add(self, target: Callable) -> None:
