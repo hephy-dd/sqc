@@ -139,7 +139,7 @@ class ResourcesDialog(QtWidgets.QDialog):
         self.resize(size)
         settings.endGroup()
 
-    def syncSettings(self) -> None:
+    def writeSettings(self) -> None:
         """Syncronize dialog specific settings."""
         settings = QtCore.QSettings()
         settings.beginGroup("ResourcesDialog")

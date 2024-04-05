@@ -304,7 +304,7 @@ class DataBrowserWindow(QtWidgets.QMainWindow):
         self.fileNameLabel = QtWidgets.QLabel(self)
         self.statusBar().addPermanentWidget(self.fileNameLabel)
 
-    def readSettings(self):
+    def readSettings(self) -> None:
         settings = QtCore.QSettings()
         settings.beginGroup(self.objectName())
 
@@ -323,7 +323,7 @@ class DataBrowserWindow(QtWidgets.QMainWindow):
 
         settings.endGroup()
 
-    def syncSettings(self):
+    def writeSettings(self) -> None:
         settings = QtCore.QSettings()
         settings.beginGroup(self.objectName())
 

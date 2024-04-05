@@ -16,7 +16,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 
 from ..controller.needle import NeedleController
 from ..controller.table import TableController
-from ..core.camera import camera_registry, DummyCamera
+from ..core.camera import camera_registry, Camera, DummyCamera
 from ..core.geometry import Pad, Padfile, NeedlesGeometry
 from ..core.transformation import affine_transformation, transform
 from ..settings import Settings
@@ -1184,7 +1184,7 @@ class AlignmentDialog(QtWidgets.QDialog):
         self.cameraView = CameraView(self.cameraScene, self)
         self.cameraView.setMinimumHeight(240)
 
-        self.cameraController = None
+        self.cameraController: Optional[Camera] = None
 
         self.closeAction = QtWidgets.QAction(self)
         self.closeAction.setText("&Close")
@@ -1210,6 +1210,9 @@ class AlignmentDialog(QtWidgets.QDialog):
 
         self.needlesMenu = self.toolsMenu.addMenu("&Needles (TANGO)")
         self.needlesMenu.addAction(self.calibrateNeedlesAction)
+
+        self.exposureValueLabel = QtWidgets.QLabel(self)
+        self.exposureValueLabel.setFixedWidth(48)
 
         self.exposureSlider = QtWidgets.QSlider(QtCore.Qt.Horizontal, self)
         self.exposureSlider.setMaximumWidth(128)
@@ -1261,6 +1264,7 @@ class AlignmentDialog(QtWidgets.QDialog):
         self.zoomToolBar.addAction(self.zoomAction3x)
         self.zoomToolBar.addWidget(QtWidgets.QLabel("Exposure: "))
         self.zoomToolBar.addWidget(self.exposureSlider)
+        self.zoomToolBar.addWidget(self.exposureValueLabel)
 
         self.controlWidget = ControlWidget(context, self.cameraScene, self)
         self.controlWidget.lockedStateChanged.connect(self.setLocked)
@@ -1300,7 +1304,7 @@ class AlignmentDialog(QtWidgets.QDialog):
     def padfile(self):
         return self.controlWidget.padfile()
 
-    def setPadfile(self, padfile):
+    def setPadfile(self, padfile) -> None:
         self.controlWidget.setPadfile(padfile)
         self.needlePitchLabel.clear()
         if padfile:
@@ -1311,7 +1315,7 @@ class AlignmentDialog(QtWidgets.QDialog):
     def setSensorName(self, name: str) -> None:
         self.sensorNameLabel.setText(f"Sensor: {name}")
 
-    def updateCameraZoom(self, state):
+    def updateCameraZoom(self, state) -> None:
         action = self.zoomActionGroup.checkedAction()
         if action:
             self.setCameraZoom(action.property("factor"))
@@ -1328,7 +1332,7 @@ class AlignmentDialog(QtWidgets.QDialog):
     def setJoystickEnabled(self, enabled: bool) -> None:
         self.controlWidget.tableController.setJoystickEnabled(enabled)
 
-    def readSettings(self):
+    def readSettings(self) -> None:
         settings = QtCore.QSettings()
         settings.beginGroup("AlignmentDialog")
         geometry = settings.value("geometry", QtCore.QByteArray(), QtCore.QByteArray)
@@ -1351,7 +1355,7 @@ class AlignmentDialog(QtWidgets.QDialog):
         self.controlWidget.optionsWidget.setMeasurePosition(Settings().measurePosition())
         self.controlWidget.optionsWidget.setLoadPosition(Settings().loadPosition())
 
-    def syncSettings(self):
+    def writeSettings(self) -> None:
         settings = QtCore.QSettings()
         settings.beginGroup("AlignmentDialog")
         settings.setValue("geometry", self.saveGeometry())
@@ -1383,36 +1387,40 @@ class AlignmentDialog(QtWidgets.QDialog):
         QtCore.QTimer.singleShot(10, self.createCamera)  # TODO
         return super().exec()
 
-    def createCamera(self):
+    def createCamera(self) -> None:
         settings = QtCore.QSettings()
         settings.beginGroup("camera")
-        name = settings.value("name", "ueye", str)
+        model = settings.value("model", "ueye", str)  # TODO
         device_id = settings.value("device_id", 0, int)
         settings.endGroup()
         try:
             # Camera
-            camera_cls = camera_registry.get(name, DummyCamera)  # TODO
-            if camera_cls:
-                self.setCamera(camera_cls({"device_id": device_id}))  # TODO
+            camera_cls = camera_registry.get(model)
+            if camera_cls is None:
+                camera_cls = DummyCamera
+            camera = camera_cls({"device_id": device_id})  # TODO
+            if isinstance(camera, Camera):
+                self.setCamera(camera)
                 self.startCamera()
                 self.setCameraExposure(self.exposureSlider.value())
         except Exception as exc:
             logger.exception(exc)
 
-    def setCamera(self, camera):
+    def setCamera(self, camera: Camera) -> None:
         if not self.cameraController:
             self.cameraController = camera
             self.cameraController.add_frame_handler(self.cameraView.handle)
 
-    def startCamera(self):
+    def startCamera(self) -> None:
         if self.cameraController:
             self.cameraController.start()
 
-    def setCameraExposure(self, exposure):
+    def setCameraExposure(self, exposure: float) -> None:
+        self.exposureValueLabel.setText(f"{exposure} ms")
         if self.cameraController:
             self.cameraController.set_exposure(exposure)
 
-    def stopCamera(self):
+    def stopCamera(self) -> None:
         if self.cameraController:
             self.cameraController.stop()
 
@@ -1424,7 +1432,7 @@ class AlignmentDialog(QtWidgets.QDialog):
         dialog = NeedlesCalibrationDialog(self.controlWidget.needleController, self)
         dialog.exec()
 
-    def shutdown(self):
+    def shutdown(self) -> None:
         self.controlWidget.shutdown()
         if self.cameraController:
             self.cameraController.shutdown()

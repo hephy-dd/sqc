@@ -433,7 +433,7 @@ class DashboardWidget(QtWidgets.QWidget):
         self.environUpdateTimer.timeout.connect(self.updateEnvironData)
         self.environUpdateTimer.start(500)
 
-    def readSettings(self):
+    def readSettings(self) -> None:
         settings = QtCore.QSettings()
 
         sampleNamePrefix = settings.value("sampleNamePrefix", "", str)
@@ -498,7 +498,7 @@ class DashboardWidget(QtWidgets.QWidget):
         else:
             self.horizontalSplitter.restoreState(state)
 
-    def syncSettings(self):
+    def writeSettings(self) -> None:
         settings = QtCore.QSettings()
 
         settings.setValue("sampleNamePrefix", self.sampleNamePrefix())
