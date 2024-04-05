@@ -86,6 +86,7 @@ class Context(QtCore.QObject):
         self.environ_errors: int = 0
         self.auto_start_measurement: bool = False
         self.keep_light_flashing: bool = False  # TODO
+        self.return_to_load_position: bool = False
         # Signals
         station.bias_voltage_changed.add(self.bias_voltage_changed.emit)
 
