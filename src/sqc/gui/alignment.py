@@ -1323,7 +1323,7 @@ class AlignmentDialog(QtWidgets.QDialog):
         self.cameraScene.setFactor(factor)
 
     def setLightsOn(self):
-        self.context.station.box_switch_lights_on()
+        self.context.station.box_set_light_enabled(True)
 
     def setJoystickEnabled(self, enabled: bool) -> None:
         self.controlWidget.tableController.setJoystickEnabled(enabled)

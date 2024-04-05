@@ -115,10 +115,9 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.boxLightAction = QtWidgets.QAction("Box Light")
         self.boxLightAction.setIcon(QtGui.QIcon.fromTheme("icons:light.svg"))
-        self.boxLightAction.setStatusTip("Toggle box light")
+        self.boxLightAction.setStatusTip("Toggle box and microscope light")
         self.boxLightAction.setCheckable(True)
-        self.boxLightAction.setVisible(False)  # TODO
-        self.boxLightAction.toggled.connect(self.toggleBoxLight)
+        self.boxLightAction.triggered.connect(self.toggleBoxLight)
 
         self.identifyAction = QtWidgets.QAction("Identify Instruments")
         self.identifyAction.setStatusTip("Identify Instruments")
@@ -227,6 +226,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.context.progress_changed.connect(self.setProgress)
         self.context.exception_raised.connect(self.showException)
         self.context.suspended.connect(self.setSuspended)
+        self.context.box_light_changed.connect(self.boxLightAction.setChecked)
 
         # States
 
@@ -469,13 +469,10 @@ class MainWindow(QtWidgets.QMainWindow):
         except Exception as exc:
             logger.exception(exc)
 
-    def toggleBoxLight(self, state) -> None:
+    def toggleBoxLight(self, state: bool) -> None:
         try:
             station = self.context.station
-            if state:
-                station.box_switch_lights_on()
-            else:
-                station.box_switch_lights_off()
+            station.box_set_light_enabled(state)
         except Exception as exc:
             logger.exception(exc)
 
@@ -652,9 +649,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.alignmentAction.setEnabled(False)
         self.recoverAction.setEnabled(False)
         self.boxFlashingLightAction.setEnabled(False)
-        self.boxFlashingLightAction.setChecked(True)
         self.boxLightAction.setEnabled(False)
-        self.boxLightAction.setChecked(False)
         self.loggerWidget.showRecentRecords()
         self.dashboardWidget.setLocked(True)
         self.dashboardWidget.setInputsLocked(True)
