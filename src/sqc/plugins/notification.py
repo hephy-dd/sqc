@@ -79,7 +79,7 @@ def publish_message(message: str) -> None:
     settings.endGroup()
     if slack_webhook_url and message:
         response = send_slack_message(slack_webhook_url, message)
-        logger.info(response.decode("utf8"))
+        logger.info(response)
 
 
 def send_slack_message(webhook_url: str, message: str) -> str:
