@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Manual control of box/microscope light (#20).
 - Force stop table movements in optical scan dialog (#36).
 - Plugin manager (#49).
+- Slack notification plugin (#17).
 
 ## [0.9.1] - 2024-04-03
 

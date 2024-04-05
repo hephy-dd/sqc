@@ -350,6 +350,7 @@ class SequenceWidget(QtWidgets.QTreeWidget):
 
 class SequenceController(QtCore.QObject):
 
+    started = QtCore.pyqtSignal()
     finished = QtCore.pyqtSignal()
     failed = QtCore.pyqtSignal(Exception)
 
@@ -373,6 +374,7 @@ class SequenceController(QtCore.QObject):
             self._thread = None
 
     def run(self):
+        self.started.emit()
         try:
             SequenceStrategy(self.context)(self.sequence)
         except Exception as exc:
