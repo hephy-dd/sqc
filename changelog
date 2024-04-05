@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Retrun to LOAD position option (#16).
+- Manual control of box/microscope light (#20).
 
 ## [0.9.1] - 2024-04-03
 
