@@ -665,6 +665,10 @@ class Station:
         table = Table(self.get_resource("table"))
         table.configure()
 
+    def table_abort(self) -> None:
+        table = Table(self.get_resource("table"))
+        table.abort()
+
     def table_apply_profile(self, name: str) -> None:
         table = Table(self.get_resource("table"))
 
