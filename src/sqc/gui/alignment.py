@@ -1391,14 +1391,14 @@ class AlignmentDialog(QtWidgets.QDialog):
         settings = QtCore.QSettings()
         settings.beginGroup("camera")
         model = settings.value("model", "ueye", str)  # TODO
-        device_id = settings.value("device_id", 0, int)
+        deviceId = settings.value("deviceId", 0, int)
         settings.endGroup()
         try:
             # Camera
             camera_cls = camera_registry.get(model)
             if camera_cls is None:
                 camera_cls = DummyCamera
-            camera = camera_cls({"device_id": device_id})  # TODO
+            camera = camera_cls({"device_id": deviceId})  # TODO
             if isinstance(camera, Camera):
                 self.setCamera(camera)
                 self.startCamera()
