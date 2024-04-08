@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.10.0] - 2024-04-05
+## [0.10.0] - 2024-04-08
 
 ### Added
 - Retrun to LOAD position option (#16).
@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Plugin manager (#49).
 - Slack notification plugin (#17).
 - Open logfile in tedt editor (#21)
+- Configurable camera parameters (#50).
 
 ### Fixed
 - Broken warning when environment was out of bounds during measurements (#23).
