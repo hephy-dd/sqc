@@ -103,7 +103,6 @@ class Context(QtCore.QObject):
         self._current_strip = ""
         self._suspend_event = threading.Event()
         self._abort_event = threading.Event()
-        self.environ_errors = 0
         self.auto_start_measurement = False
 
     def reset_data(self) -> None:
