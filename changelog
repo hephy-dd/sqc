@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Force stop table movements in optical scan dialog (#36).
 - Plugin manager (#49).
 - Slack notification plugin (#17).
+- Open logfile in tedt editor (#21)
+
+### Fixed
+- Broken warning when environment was out of bounds during measurements (#23).
 
 ## [0.9.1] - 2024-04-03
 

@@ -96,7 +96,8 @@ def run_main_window(args):
     context.parameters.update({
         "option_debug_no_table": args.debug_no_table,
         "option_debug_no_tango": args.debug_no_tango,
-        "option_debug": args.debug
+        "option_debug": args.debug,
+        "logfile": args.logfile,
     })
 
     window = MainWindow(context)
