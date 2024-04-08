@@ -61,6 +61,7 @@ class Station:
         ]
 
         self.bias_voltage_changed: Event = Event()
+        self.box_light_changed: Event = Event()
 
         self.environ: EnvironController = EnvironController()
         self.environ.start()
@@ -243,18 +244,14 @@ class Station:
         environ = self.environ
         environ.set_box_light_state(False)
         environ.set_microscope_light_state(False)
+        self.box_light_changed(False)
 
-    def box_switch_lights_on(self) -> None:
-        logger.info("Switching box and microscope lights on.")
+    def box_set_light_enabled(self, state: bool) -> None:
+        logger.info("Switching box and microscope lights: %s.", "ON" if state else "OFF")
         environ = self.environ
-        environ.set_box_light_state(True)
-        environ.set_microscope_light_state(True)
-
-    def box_switch_lights_off(self) -> None:
-        logger.info("Switching box and microscope lights off.")
-        environ = self.environ
-        environ.set_box_light_state(False)
-        environ.set_microscope_light_state(False)
+        environ.set_box_light_state(state)
+        environ.set_microscope_light_state(state)
+        self.box_light_changed(state)
 
     def box_set_test_running(self, state: bool) -> None:
         logger.info("Set box test running: %s", state)
@@ -667,6 +664,10 @@ class Station:
     def table_configure(self) -> None:
         table = Table(self.get_resource("table"))
         table.configure()
+
+    def table_abort(self) -> None:
+        table = Table(self.get_resource("table"))
+        table.abort()
 
     def table_apply_profile(self, name: str) -> None:
         table = Table(self.get_resource("table"))

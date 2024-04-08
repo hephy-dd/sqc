@@ -26,12 +26,12 @@ def enabled_items(items):
 
 class SequenceController:
 
-    def __init__(self, context):
+    def __init__(self, context) -> None:
         self.context = context
         self.contacts = ContactHandler(context.padfile)
         self.gradual_z_approach: bool = False
 
-    def initialize(self):
+    def initialize(self) -> None:
         self.context.set_message("Initialize...")
         self.context.create_timestamp()  # new timestamp for measurement!
         self.context.set_progress(0, 0, 0)
@@ -53,7 +53,7 @@ class SequenceController:
 
         self.safe_recover_table()
 
-    def finalize(self):
+    def finalize(self) -> None:
         self.context.set_message("Finalize...")
         self.context.set_progress(0, 0, 0)
         self.context.set_current_item(None)
@@ -62,6 +62,10 @@ class SequenceController:
         self.context.set_stripscan_progress(0, 0)
 
         self.safe_recover_table()
+
+        if self.context.return_to_load_position:
+            pos = Settings().loadPosition()
+            self.safe_move_table_to_pos(pos)
 
         station = self.context.station
         station.finalize()
@@ -87,12 +91,12 @@ class SequenceController:
         if self.context.parameters.get("option_debug_no_table"):
             logger.info("Ignoring table movement (--debug-no-table)")
         else:
-            offset = -800
+            offset = -800  # TODO
             logger.info("Table move relative z: %f um", offset)
             station = self.context.station
             station.table_move_relative((0, 0, -abs(offset)))
 
-    def safe_move_table(self, strip, position):
+    def safe_move_table_to_strip(self, strip, position):
         if self.context.parameters.get("option_debug_no_table"):
             logger.info("Ignoring table movement (--debug-no-table)")
         else:
@@ -112,6 +116,21 @@ class SequenceController:
                     station.table_move_relative((0, 0, abs(z)))
             else:
                 station.table_safe_move_absolute(position)
+
+            # Verify table position
+            current_position = station.table_position()
+            if not verify_position(position, current_position, threshold=1.0):
+                raise RuntimeError(f"Table position mismatch, requested {position} but table returned {current_position}")
+
+    def safe_move_table_to_pos(self, position):
+        if self.context.parameters.get("option_debug_no_table"):
+            logger.info("Ignoring table movement (--debug-no-table)")
+        else:
+            logger.info("Move table to: %s", position)
+            station = self.context.station
+
+            station.table_apply_profile("strip_scan")
+            station.table_safe_move_absolute(position)
 
             # Verify table position
             current_position = station.table_position()
@@ -462,7 +481,7 @@ class SequenceStrategy:
                     self.get_measurement(item).before_strip()
 
                     # Contact strip
-                    self.controller.safe_move_table(strip, position)
+                    self.controller.safe_move_table_to_strip(strip, position)
 
                     # Strip measurements
                     for strip_item in strip_items:

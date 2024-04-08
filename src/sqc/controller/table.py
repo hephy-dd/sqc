@@ -47,6 +47,9 @@ class Table:  # TODO
     def position(self) -> Tuple[float, float, float]:
         return self.driver.pos
 
+    def abort(self) -> None:
+        self.driver.resource.write(f"abort")
+
     def move_relative(self, position, position_changed: Optional[Callable] = None) -> None:
         if not self.is_calibrated():
             raise RuntimeError("Table requires calibration.")

@@ -16,11 +16,13 @@ class PreferencesDialog(QtWidgets.QDialog):
         self.setWindowTitle("Preferences")
 
         self.tableWidget = TableWidget(self)
+        self.cameraWidget = CameraWidget(self)
 
         # Tabs
 
         self.tabWidget = QtWidgets.QTabWidget(self)
         self.tabWidget.addTab(self.tableWidget, "Table")
+        self.tabWidget.addTab(self.cameraWidget, "Camera")
 
         # Dialog button box
 
@@ -42,7 +44,7 @@ class PreferencesDialog(QtWidgets.QDialog):
         self.restoreGeometry(settings.value("geometry", QtCore.QByteArray(), QtCore.QByteArray))
         settings.endGroup()
 
-    def syncSettings(self) -> None:
+    def writeSettings(self) -> None:
         settings = QtCore.QSettings()
         settings.beginGroup("PreferencesDialog")
         settings.setValue("geometry", self.saveGeometry())
@@ -50,9 +52,11 @@ class PreferencesDialog(QtWidgets.QDialog):
 
     def loadValues(self) -> None:
         self.tableWidget.loadValues()
+        self.cameraWidget.loadValues()
 
     def saveValues(self) -> None:
         self.tableWidget.saveValues()
+        self.cameraWidget.saveValues()
 
 
 class TableProfile:
@@ -141,3 +145,41 @@ class TableWidget(QtWidgets.QWidget):
             except Exception as exc:
                 logging.exception(exc)
         settings.setGradualZApproach(self.gradualZApproachCheckBox.isChecked())
+
+
+class CameraWidget(QtWidgets.QWidget):
+
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
+        super().__init__(parent)
+
+        self.cameraComboBox = QtWidgets.QComboBox(self)
+
+        self.deviceIdSpinBox = QtWidgets.QSpinBox(self)
+        self.deviceIdSpinBox.setRange(0, 100)
+
+        layout = QtWidgets.QFormLayout(self)
+        layout.addRow("Model", self.cameraComboBox)
+        layout.addRow("Device ID", self.deviceIdSpinBox)
+
+    def addCamera(self, model: str) -> None:
+        self.cameraComboBox.addItem(model, model)
+
+    def loadValues(self) -> None:
+        settings = QtCore.QSettings()
+        settings.beginGroup("camera")
+        model = settings.value("model", "", str)
+        deviceId = settings.value("deviceId", 0, int)
+        settings.endGroup()
+        index = self.cameraComboBox.findData(model)
+        if index >= 0:
+            self.cameraComboBox.setCurrentIndex(index)
+        self.deviceIdSpinBox.setValue(deviceId)
+
+    def saveValues(self) -> None:
+        model = self.cameraComboBox.currentData()
+        deviceId = self.deviceIdSpinBox.value()
+        settings = QtCore.QSettings()
+        settings.beginGroup("camera")
+        settings.setValue("model", model)
+        settings.setValue("deviceId", deviceId)
+        settings.endGroup()

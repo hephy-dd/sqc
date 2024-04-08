@@ -1,9 +1,13 @@
+from .json_writer import JSONWriterPlugin
+from .legacy_writer import LegacyWriterPlugin
+from .ueye_camera import UEyeCameraPlugin
+from .logger_widget import LoggerWidgetPlugin
+from .notification import NotificationPlugin
 
 
-class Plugin:
-
-    def install(self, window):
-        ...
-
-    def uninstall(self, window):
-        ...
+def register_plugins(window) -> None:
+    window.registerPlugin(JSONWriterPlugin())
+    window.registerPlugin(LegacyWriterPlugin())
+    window.registerPlugin(UEyeCameraPlugin())
+    window.registerPlugin(LoggerWidgetPlugin())
+    window.registerPlugin(NotificationPlugin())

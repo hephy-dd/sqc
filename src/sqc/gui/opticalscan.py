@@ -325,7 +325,14 @@ class OpticalScanDialog(QtWidgets.QDialog):
 
     def enterAborting(self) -> None:
         self.stopButton.setEnabled(False)
+        self.abortMovement()
         self._stopRequested.set()
+
+    def abortMovement(self) -> None:
+        try:
+            self.context.station.table_abort()
+        except Exception as exc:
+            logger.exception(exc)
 
     def startMoving(self) -> None:
         x_images = self.xImagesSpinBox.value()

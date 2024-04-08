@@ -11,26 +11,16 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from . import __version__
 from .context import Context
 from .station import Station
-
 from .gui.mainwindow import MainWindow
 from .gui.databrowser import DataBrowserWindow
+from .plugins import register_plugins
 
-from .plugins import Plugin
-from .plugins.json_writer import JSONWriterPlugin
-from .plugins.legacy_writer import LegacyWriterPlugin
-from .plugins.ueye_camera import UEyeCameraPlugin
 
 __all__ = ["main"]
 
 PACKAGE_PATH: str = os.path.dirname(__file__)
 ASSETS_PATH: str = os.path.join(PACKAGE_PATH, "assets")
 LOG_FILENAME: str = os.path.expanduser("~/sqc.log")
-
-ENABLED_PLUGINS: List[Type[Plugin]] = [
-    JSONWriterPlugin,
-    LegacyWriterPlugin,
-    UEyeCameraPlugin
-]
 
 logger = logging.getLogger()
 
@@ -94,7 +84,7 @@ def run_data_browser(args):
 
     QtWidgets.QApplication.exec()
 
-    window.syncSettings()
+    window.writeSettings()
 
 
 def run_main_window(args):
@@ -106,29 +96,23 @@ def run_main_window(args):
     context.parameters.update({
         "option_debug_no_table": args.debug_no_table,
         "option_debug_no_tango": args.debug_no_tango,
-        "option_debug": args.debug
+        "option_debug": args.debug,
+        "logfile": args.logfile,
     })
 
     window = MainWindow(context)
-    window.addLogger(logger)
+    register_plugins(window)
 
     logging.info("SQC version %s", __version__)
 
-    logger.info("Installing plugins...")
-
-    for plugin in ENABLED_PLUGINS:
-        try:
-            window.installPlugin(plugin())
-        except Exception as exc:
-            logger.exception(exc)
-            logger.error("Failed to install plugin: %r", plugin)
-
+    window.installPlugins()
     window.readSettings()
     window.show()
 
     QtWidgets.QApplication.exec()
 
-    window.syncSettings()
+    window.writeSettings()
+    window.uninstallPlugins()
     window.shutdown()
 
     station.shutdown()

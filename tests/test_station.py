@@ -10,6 +10,7 @@ class FakeStation:
 
     def __init__(self):
         self.bias_voltage_changed = Event()
+        self.box_light_changed = Event()
 
     def __getattr__(self, name):
         return lambda *args, **kwargs: None

@@ -5,7 +5,59 @@ from typing import Callable, Iterable, List, Optional
 
 from PyQt5 import QtCore, QtGui, QtWidgets
 
-__all__ = ["LoggerWidget", "QueuedLoggerWidget"]
+__all__ = ["LoggerWidgetPlugin"]
+
+
+class LoggerWidgetPlugin:
+
+    def install(self, window) -> None:
+        self.window = window
+
+        self.loggerWidget = QueuedLoggerWidget()
+        self.loggerWidget.addLogger(logging.getLogger())
+
+        self.openAction = QtWidgets.QAction()
+        self.openAction.setText("&Open Logfile")
+        self.openAction.setIcon(QtGui.QIcon.fromTheme("icons:open-logfile.svg"))
+        self.openAction.setStatusTip("Open current Logfile in default Text Editor.")
+        self.openAction.triggered.connect(self.openCurrentLogile)
+
+        self.toolBar = QtWidgets.QToolBar()
+        self.toolBar.setOrientation(QtCore.Qt.Vertical)
+        self.toolBar.addAction(self.openAction)
+
+        self.widget = QtWidgets.QWidget()
+
+        layout = QtWidgets.QGridLayout(self.widget)
+        layout.addWidget(self.loggerWidget, 0, 0)
+        layout.addWidget(self.toolBar, 0, 1)
+        layout.setColumnStretch(0, 1)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setHorizontalSpacing(0)
+
+        self.loggerDockWidget = QtWidgets.QDockWidget()
+        self.loggerDockWidget.setObjectName("logger")
+        self.loggerDockWidget.setWindowTitle("Logger")
+        self.loggerDockWidget.setFloating(False)
+        self.loggerDockWidget.setFeatures(QtWidgets.QDockWidget.DockWidgetClosable)
+        self.loggerDockWidget.setWidget(self.widget)
+        window.addDockWidget(QtCore.Qt.BottomDockWidgetArea, self.loggerDockWidget)
+
+        self.loggerAction = self.loggerDockWidget.toggleViewAction()
+        self.loggerAction.setIcon(QtGui.QIcon("icons:view-logger.svg"))
+        self.loggerAction.setChecked(False)
+
+        window.viewMenu.addAction(self.loggerAction)
+
+    def uninstall(self, window) -> None:
+        self.loggerWidget.removeLogger(logging.getLogger())
+        window.removeDockWidget(self.loggerDockWidget)
+        window.viewMenu.removeAction(self.loggerAction)
+
+    def openCurrentLogile(self) -> None:
+        filename = self.window.context.parameters.get("logfile")
+        if filename:
+            QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(filename))
 
 
 class Handler(logging.Handler):

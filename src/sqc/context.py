@@ -53,6 +53,7 @@ class Context(QtCore.QObject):
     progress_changed = QtCore.pyqtSignal(int, int, int)
 
     bias_voltage_changed = QtCore.pyqtSignal(float)
+    box_light_changed = QtCore.pyqtSignal(bool)
 
     stripscan_progress_changed = QtCore.pyqtSignal(int, int)
     stripscan_estimation_changed = QtCore.pyqtSignal(object, object)
@@ -86,8 +87,10 @@ class Context(QtCore.QObject):
         self.environ_errors: int = 0
         self.auto_start_measurement: bool = False
         self.keep_light_flashing: bool = False  # TODO
+        self.return_to_load_position: bool = False
         # Signals
         station.bias_voltage_changed.add(self.bias_voltage_changed.emit)
+        station.box_light_changed.add(self.box_light_changed.emit)
 
     @property
     def station(self) -> Station:
@@ -100,7 +103,6 @@ class Context(QtCore.QObject):
         self._current_strip = ""
         self._suspend_event = threading.Event()
         self._abort_event = threading.Event()
-        self.environ_errors = 0
         self.auto_start_measurement = False
 
     def reset_data(self) -> None:

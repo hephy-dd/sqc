@@ -133,11 +133,17 @@ class DashboardWidget(QtWidgets.QWidget):
         self.recontactCountSpinBox.setSuffix("x")
         self.recontactCountSpinBox.setStatusTip("Number of recontact attempts for failed strip measurements")
 
+        self.returnToLoadCheckBox = QtWidgets.QCheckBox(self)
+        self.returnToLoadCheckBox.setText("Return to LOAD pos")
+        self.returnToLoadCheckBox.setStatusTip("Return table to LOAD position ofter sequence")
+        self.returnToLoadCheckBox.stateChanged.connect(self.updateReturnToLoadPosition)
+
         optionsLayout = QtWidgets.QGridLayout(self.optionsGroupBox)
         optionsLayout.addWidget(self.remeasurementsLabel, 0, 0, 1, 1)
         optionsLayout.addWidget(self.remeasureCountSpinBox, 0, 1, 1, 1)
         optionsLayout.addWidget(self.recontactsLabel, 0, 2, 1, 1)
         optionsLayout.addWidget(self.recontactCountSpinBox, 0, 3, 1, 1)
+        optionsLayout.addWidget(self.returnToLoadCheckBox, 1, 0, 1, 3)
         optionsLayout.setColumnStretch(1, 1)
         optionsLayout.setColumnStretch(3, 1)
         optionsLayout.setColumnStretch(4, 10)
@@ -427,7 +433,7 @@ class DashboardWidget(QtWidgets.QWidget):
         self.environUpdateTimer.timeout.connect(self.updateEnvironData)
         self.environUpdateTimer.start(500)
 
-    def readSettings(self):
+    def readSettings(self) -> None:
         settings = QtCore.QSettings()
 
         sampleNamePrefix = settings.value("sampleNamePrefix", "", str)
@@ -456,6 +462,9 @@ class DashboardWidget(QtWidgets.QWidget):
 
         recontactCount = settings.value("recontactCount", 0, int)
         self.setRecontactCount(recontactCount)
+
+        returnToLoad = settings.value("returnToLoad", False, bool)
+        self.returnToLoadCheckBox.setChecked(returnToLoad)
 
         minTemperature = settings.value("minTemperature", 20, float)
         maxTemperature = settings.value("maxTemperature", 24, float)
@@ -489,7 +498,7 @@ class DashboardWidget(QtWidgets.QWidget):
         else:
             self.horizontalSplitter.restoreState(state)
 
-    def syncSettings(self):
+    def writeSettings(self) -> None:
         settings = QtCore.QSettings()
 
         settings.setValue("sampleNamePrefix", self.sampleNamePrefix())
@@ -500,6 +509,7 @@ class DashboardWidget(QtWidgets.QWidget):
 
         settings.setValue("remeasureCount", self.remeasureCount())
         settings.setValue("recontactCount", self.recontactCount())
+        settings.setValue("returnToLoad", self.returnToLoadCheckBox.isChecked())
 
         settings.setValue("minTemperature", self.minTemperature())
         settings.setValue("maxTemperature", self.maxTemperature())
@@ -868,6 +878,9 @@ class DashboardWidget(QtWidgets.QWidget):
 
     def setRecontactCount(self, count: int) -> None:
         self.recontactCountSpinBox.setValue(count)
+
+    def updateReturnToLoadPosition(self, state: int) -> None:
+        self.context.return_to_load_position = (state == QtCore.Qt.Checked)
 
     # Setpoints
 
