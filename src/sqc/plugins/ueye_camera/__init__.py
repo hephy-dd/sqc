@@ -17,7 +17,7 @@ def load_camera_cls():
     return UEyeCamera
 
 
-def create_camera(self, config):
+def create_camera(config):
     return load_camera_cls()(config)
 
 
