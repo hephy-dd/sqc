@@ -6,8 +6,8 @@ from .notification import NotificationPlugin
 
 
 def register_plugins(window) -> None:
+    window.registerPlugin(LoggerWidgetPlugin())
     window.registerPlugin(JSONWriterPlugin())
     window.registerPlugin(LegacyWriterPlugin())
     window.registerPlugin(UEyeCameraPlugin())
-    window.registerPlugin(LoggerWidgetPlugin())
     window.registerPlugin(NotificationPlugin())

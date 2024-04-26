@@ -783,7 +783,8 @@ class DashboardWidget(QtWidgets.QWidget):
     # Environment
 
     def setEnvironOutOfBounds(self) -> None:
-        self.context.environ_errors += 1
+        if self.context.environ_errors_enabled:
+            self.context.environ_errors += 1
 
     def wasEnvironOutOfBounds(self) -> bool:
         return self.context.environ_errors > 0

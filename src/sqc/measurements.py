@@ -48,6 +48,8 @@ class AnalysisError(Exception):
 
 class BaseMeasurement(Measurement):
 
+    alignment_required: bool = True
+
     hv_channels = Parameter([], type=list)
     lv_channels = Parameter([], type=list)
 
@@ -77,6 +79,8 @@ class BaseMeasurement(Measurement):
 
 @register_measurement("iv")
 class IVMeasurement(BaseMeasurement):
+
+    alignment_required = False
 
     voltage_begin = Parameter(default=0, unit="V", minimum=-1000, maximum=0)
     voltage_end = Parameter(unit="V", minimum=-1000, maximum=0)
@@ -148,6 +152,8 @@ class IVMeasurement(BaseMeasurement):
 
 @register_measurement("cv")
 class CVMeasurement(BaseMeasurement):
+
+    alignment_required = False
 
     voltage_begin = Parameter(default=0, unit="V")
     voltage_end = Parameter(unit="V", minimum=-1000, maximum=0)

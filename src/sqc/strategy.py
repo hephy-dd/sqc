@@ -85,7 +85,6 @@ class SequenceController:
                     break
             logger.info("Waiting for box humidity < %.1f %%rel ...", humidity_threshold)
             context.snooze(interval)
-        context.environ_errors = 0  # reset error counter
 
     def safe_recover_table(self):
         if self.context.parameters.get("option_debug_no_table"):
@@ -183,10 +182,21 @@ class SequenceStrategy:
         self.statistics = Statistics()
 
     def __call__(self, sequence):
-        self.controller.contacts.calculate_positions()
+        self.context.environ_errors_enabled = False
+        self.context.environ_errors = 0  # reset error counter
+
         self.create_measurements(sequence)
         self.reset_sequence(sequence)
         self.validate_sequence(sequence)
+
+        # apply transformation only if required by measurement(s)
+        for measurement in self.measurements.values():
+            if measurement.alignment_required:
+                self.controller.contacts.calculate_positions()
+                break
+
+        self.context.environ_errors_enabled = True
+
         try:
             self.handle_sequence(sequence)
         except Exception as exc:
@@ -195,6 +205,8 @@ class SequenceStrategy:
         finally:
             self.show_statistics()
             self.serialize_data()
+
+        self.context.environ_errors_enabled = False
 
     @property
     def remeasure_attempts(self) -> int:
