@@ -85,6 +85,7 @@ class Context(QtCore.QObject):
         self._suspend_event: threading.Event = threading.Event()
         self._abort_event: threading.Event = threading.Event()
         self.environ_errors: int = 0
+        self.environ_errors_enabled: bool = False
         self.auto_start_measurement: bool = False
         self.keep_light_flashing: bool = False  # TODO
         self.return_to_load_position: bool = False

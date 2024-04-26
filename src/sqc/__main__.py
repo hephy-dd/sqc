@@ -102,10 +102,10 @@ def run_main_window(args):
 
     window = MainWindow(context)
     register_plugins(window)
+    window.installPlugins()
 
     logging.info("SQC version %s", __version__)
 
-    window.installPlugins()
     window.readSettings()
     window.show()
 
