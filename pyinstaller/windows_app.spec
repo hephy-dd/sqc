@@ -4,8 +4,10 @@ from pyinstaller_versionfile import create_versionfile
 import sqc
 
 version = sqc.__version__
-filename = f"sqc-{version}.exe"
+bundle = "sqc"
+filename = "sqc.exe"
 console = False
+debug = False
 block_cipher = None
 
 package_root = os.path.join(os.path.dirname(sqc.__file__))
@@ -58,13 +60,11 @@ pyz = PYZ(
 exe = EXE(
     pyz,
     a.scripts,
-    a.binaries,
-    a.zipfiles,
-    a.datas,
     [],
+    exclude_binaries=True,
     name=filename,
     version=version_info,
-    debug=False,
+    debug=debug,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
@@ -72,4 +72,15 @@ exe = EXE(
     runtime_tmpdir=None,
     console=console,
     icon=package_icon,
+)
+
+coll = COLLECT(
+    exe,
+    a.binaries,
+    a.zipfiles,
+    a.datas,
+    strip=False,
+    upx=True,
+    upx_exclude=[],
+    name=bundle,
 )
