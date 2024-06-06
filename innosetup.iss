@@ -12,11 +12,14 @@
 AppId={#Organization}_{#Name}_{#Version}
 AppName={#Name}
 AppVersion={#Version}
+AppPublisher=HEPHY Detector Development
+AppPublisherURL=https://github.com/hephy-dd/
 DefaultDirName={userappdata}\{#Organization}\sqc\{#Version}
 DefaultGroupName={#Name}
 OutputDir=dist
 OutputBaseFilename=sqc-{#Version}-win-x64-setup
 SetupIconFile=src\sqc\assets\icons\sqc.ico
+UninstallDisplayIcon={app}\{#ExeName}
 Compression=lzma
 SolidCompression=yes
 PrivilegesRequired=lowest
