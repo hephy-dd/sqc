@@ -433,6 +433,8 @@ class DashboardWidget(QtWidgets.QWidget):
         self.environUpdateTimer.timeout.connect(self.updateEnvironData)
         self.environUpdateTimer.start(500)
 
+        self.context.update_boxes.connect(self.stripscanPlotAreaWidget.updateBoxes)
+
     def readSettings(self) -> None:
         settings = QtCore.QSettings()
 

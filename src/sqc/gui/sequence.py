@@ -334,12 +334,12 @@ class SequenceWidget(QtWidgets.QTreeWidget):
             if res == restoreStripsAction:
                 item.setStrips(item.defaultStrips())
             elif res == selectBadStripsAction:
-                dialog = BadStripSelectDialog(self)
-                dialog.setStatistics(self.context.statistics)
+                dialog = BadStripSelectDialog(self.context, self)
                 dialog.readSettings()
                 if dialog.exec() == dialog.Accepted:
                     item.setStrips(dialog.selectedStrips())
                     dialog.writeSettings()
+                self.context.update_boxes.emit([])
             elif res == resetIntervalsAction:
                 for child in item.allChildren():
                     child.setInterval(1)

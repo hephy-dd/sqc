@@ -464,6 +464,30 @@ class StripPlotWidget(PlotWidget):
         self._chartView.setRubberBand(self._chartView.HorizontalRubberBand)
         self._chartView.marker().setTextFormatter(self.formatMarkerText)
 
+        self._boxes: dict[QtWidgets.QGraphicsRectItem, QtCore.QRectF] = {}
+
+    def addBox(self, rect: QtCore.QRectF) -> None:
+        item = QtWidgets.QGraphicsRectItem()
+        item.setPen(QtGui.QPen(QtCore.Qt.red))
+        item.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 50)))
+        self._boxes.update({item: rect})
+        self._chart.scene().addItem(item)
+        self.updateBoxes()
+
+    def clearBoxes(self) -> None:
+        for item in self._boxes.keys():
+            self._chart.scene().removeItem(item)
+        self._boxes.clear()
+
+    def updateBoxes(self):
+        series = self._chart.series()
+        if series:
+            for item, box in self._boxes.items():
+                topLeft = self._chart.mapToPosition(box.topLeft(), series[0])
+                bottomRight = self._chart.mapToPosition(box.bottomRight(), series[0])
+                item.setRect(QtCore.QRectF(topLeft, bottomRight))
+        self.update()
+
     def strips(self) -> dict:
         return self._strips
 
