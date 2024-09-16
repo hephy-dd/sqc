@@ -176,7 +176,7 @@ class PlotAreaWidget(QtWidgets.QWidget):
 
     def updateBoxes(self, boxes) -> None:
         self.clearBoxes()
-        sortedRects = {}
+        sortedRects: dict = {}
         for name, rect in boxes:
             sortedRects.setdefault(name, []).append(rect)
         for name, rects in sortedRects.items():
