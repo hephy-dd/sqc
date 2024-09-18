@@ -1,9 +1,10 @@
 import logging
-from typing import Dict, Optional
+from typing import Callable, Dict, Iterator, Optional
 
 from PyQt5 import QtChart, QtCore, QtGui, QtWidgets
 
 from ..core.limits import LimitsAggregator
+from .plothighlighter import PlotHighlighter, PlotMarkers
 
 __all__ = [
     "DataMapper",
@@ -44,20 +45,20 @@ def auto_scale(value):
 
 class DataMapper:
 
-    def __init__(self):
-        self._mapping = {}
-        self._transformation = {}
+    def __init__(self) -> None:
+        self._mapping: dict[str, tuple[str, str]] = {}
+        self._transformation: dict[str, Callable] = {}
 
-    def setMapping(self, name, x, y):
+    def setMapping(self, name: str, x: str, y: str) -> None:
         self._mapping[name] = x, y
 
-    def setTransformation(self, name, f):
+    def setTransformation(self, name: str, f: Callable[[float, float], tuple[float, float]]) -> None:
         self._transformation[name] = f
 
-    def __call__(self, name, items):
+    def __call__(self, name: str, items: list) -> Iterator:
         if name not in self._mapping:
             raise KeyError(f"No such series: {name!r}")
-        x, y = self._mapping.get(name)
+        x, y = self._mapping[name]
         tr = self._transformation.get(name, lambda x, y: (x, y))
         return (tr(item.get(x), item.get(y)) for item in items)
 
@@ -293,6 +294,9 @@ class PlotWidget(QtWidgets.QWidget):
         self._yAxis = QtChart.QValueAxis()
         self._chart.addAxis(self._yAxis, QtCore.Qt.AlignRight)
 
+        self._highlighter = PlotHighlighter(self._chart, self._xAxis, self._yAxis)
+        self._markers = PlotMarkers(self._chart, self._xAxis, self._yAxis)
+
         layout = QtWidgets.QVBoxLayout(self)
 
         layout.addWidget(self._chartView)
@@ -301,26 +305,16 @@ class PlotWidget(QtWidgets.QWidget):
         self._boxes: dict[QtWidgets.QGraphicsRectItem, QtCore.QRectF] = {}
 
     def addBox(self, rect: QtCore.QRectF) -> None:
-        item = QtWidgets.QGraphicsRectItem()
-        item.setPen(QtGui.QPen(QtCore.Qt.red))
-        item.setBrush(QtGui.QBrush(QtGui.QColor(255, 0, 0, 50)))
-        self._boxes.update({item: rect})
-        self._chart.scene().addItem(item)
-        self.updateBoxes()
+        self._highlighter.addBox(rect, QtGui.QColor(0, 255, 0, 50))
 
     def clearBoxes(self) -> None:
-        for item in self._boxes.keys():
-            self._chart.scene().removeItem(item)
-        self._boxes.clear()
+        self._highlighter.clear()
 
-    def updateBoxes(self):
-        series = self._chart.series()
-        if series:
-            for item, box in self._boxes.items():
-                topLeft = self._chart.mapToPosition(box.topLeft(), series[0])
-                bottomRight = self._chart.mapToPosition(box.bottomRight(), series[0])
-                item.setRect(QtCore.QRectF(topLeft, bottomRight))
-        self.updateGeometry()
+    def addMarker(self, point: QtCore.QPointF) -> None:
+        self._markers.addMarker(point)
+
+    def clearMarkers(self) -> None:
+        self._markers.clear()
 
     def title(self) -> str:
         return self._chart.title()
@@ -536,7 +530,6 @@ class IStripPlotWidget(StripPlotWidget):
 
         self._yAxis.setRange(0, 1e-06)
 
-
 class RStripPlotWidget(StripPlotWidget):
 
     def __init__(self, title: str, parent: Optional[QtWidgets.QWidget] = None) -> None:
@@ -582,6 +575,20 @@ class CStripPlotWidget(StripPlotWidget):
     def transform(cls, x, y):
         # TODO
         return x, y * 1e12  # pF
+
+    @classmethod
+    def transformPoint(cls, point: QtCore.QPointF) -> QtCore.QPointF:
+        x, y = cls.transform(point.x(), point.y())
+        return QtCore.QPointF(x, y)
+
+    def addBox(self, rect: QtCore.QRectF) -> None:
+        topLeft = self.transformPoint(rect.topLeft())
+        bottomRight = self.transformPoint(rect.bottomRight())
+        self._highlighter.addBox(QtCore.QRectF(topLeft, bottomRight), QtGui.QColor(0, 255, 0, 50))
+        super().addBox(rect)
+
+    def addMarker(self, point: QtCore.QPointF) -> None:
+        super().addMarker(self.transformPoint(point))
 
 
 class RecontactPlotWidget(StripPlotWidget):

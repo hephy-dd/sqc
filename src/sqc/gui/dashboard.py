@@ -24,6 +24,7 @@ from ..settings import Settings
 from .sequence import SequenceItem, SequenceWidget, loadSequenceItems
 from .utils import setForeground, setBackground, Colors
 from .profiles import readProfiles, padfileType, padfileCategory, padfileName
+from .badstrips import BadStripSelectDialog
 
 __all__ = ["DashboardWidget"]
 
@@ -415,6 +416,8 @@ class DashboardWidget(QtWidgets.QWidget):
         self.contentTabWidget = QtWidgets.QTabWidget(self)
         self.contentTabWidget.addTab(self.ivcPlotAreaWidget, "IV/CV")
         self.contentTabWidget.addTab(self.stripscanPlotAreaWidget, "Stripscan")
+        self.contentTabWidget.setCurrentWidget(self.stripscanPlotAreaWidget)
+        self.contentTabWidget.setCurrentWidget(self.ivcPlotAreaWidget)
 
         # Splitters
 
@@ -433,7 +436,32 @@ class DashboardWidget(QtWidgets.QWidget):
         self.environUpdateTimer.timeout.connect(self.updateEnvironData)
         self.environUpdateTimer.start(500)
 
-        self.context.update_boxes.connect(self.stripscanPlotAreaWidget.updateBoxes)
+        self.sequenceWidget.selectBadStrips.connect(self.selectBadStrips)
+
+    def selectBadStrips(self, item) -> None:
+        try:
+            dialog = BadStripSelectDialog(self)
+            dialog.addType("rpoly", "rpoly_r", ["Mohm", "kohm"])
+            dialog.addType("istrip", "istrip_i", ["pA", "nA"])
+            dialog.addType("idiel", "idiel_i", ["pA", "nA"])
+            dialog.addType("cac", "cac_cp", ["pF", "nF"])
+            dialog.addType("cint", "cint_cp", ["pF", "nF"])
+            dialog.addType("rint", "rint_r", ["Gohm", "Mohm"])
+            dialog.addType("idark", "idark_i", ["nA", "pA"])
+            dialog.setData(self.context.data.get(item.namespace(), {}))
+            dialog.boxesChanged.connect(self.stripscanPlotAreaWidget.setBoxes)
+            dialog.markersChanged.connect(self.stripscanPlotAreaWidget.setMarkers)
+            dialog.readSettings()
+
+            if dialog.exec() == dialog.Accepted:
+                item.setStrips(dialog.selectedStrips())
+
+            dialog.writeSettings()
+        except Exception as exc:
+            logger.exception(exc)
+
+        self.stripscanPlotAreaWidget.clearBoxes()
+        self.stripscanPlotAreaWidget.clearMarkers()
 
     def readSettings(self) -> None:
         settings = QtCore.QSettings()

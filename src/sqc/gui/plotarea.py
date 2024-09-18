@@ -172,9 +172,8 @@ class PlotAreaWidget(QtWidgets.QWidget):
     def clearBoxes(self) -> None:
         for widget in self.plotWidgets():
             widget.clearBoxes()
-            widget.updateBoxes()
 
-    def updateBoxes(self, boxes) -> None:
+    def setBoxes(self, boxes) -> None:
         self.clearBoxes()
         sortedRects: dict = {}
         for name, rect in boxes:
@@ -184,4 +183,18 @@ class PlotAreaWidget(QtWidgets.QWidget):
             if widget:
                 for rect in rects:
                     widget.addBox(rect)
-                widget.updateBoxes()
+
+    def clearMarkers(self) -> None:
+        for widget in self.plotWidgets():
+            widget.clearMarkers()
+
+    def setMarkers(self, markers: list) -> None:
+        self.clearMarkers()
+        sortedPoints = {}
+        for name, point in markers:
+            sortedPoints.setdefault(name, []).append(point)
+        for name, points in sortedPoints.items():
+            widget = self.plotWidget(name)
+            if widget:
+                for point in points:
+                    widget.addMarker(point)

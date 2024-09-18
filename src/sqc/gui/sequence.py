@@ -7,8 +7,6 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 from ..core.utils import parse_strip_expression, normalize_strip_expression
 from ..strategy import SequenceStrategy
 
-from .badstrips import BadStripSelectDialog
-
 __all__ = [
     "SequenceItem",
     "SequenceWidget",
@@ -225,6 +223,8 @@ class SequenceItem(QtWidgets.QTreeWidgetItem):
 
 class SequenceWidget(QtWidgets.QTreeWidget):
 
+    selectBadStrips = QtCore.pyqtSignal(SequenceItem)
+
     def __init__(self, context, parent: Optional[QtWidgets.QWidget] = None) -> None:
         super().__init__(parent)
         self.context = context
@@ -334,12 +334,7 @@ class SequenceWidget(QtWidgets.QTreeWidget):
             if res == restoreStripsAction:
                 item.setStrips(item.defaultStrips())
             elif res == selectBadStripsAction:
-                dialog = BadStripSelectDialog(self.context, self)
-                dialog.readSettings()
-                if dialog.exec() == dialog.Accepted:
-                    item.setStrips(dialog.selectedStrips())
-                    dialog.writeSettings()
-                self.context.update_boxes.emit([])
+                self.selectBadStrips.emit(item)
             elif res == resetIntervalsAction:
                 for child in item.allChildren():
                     child.setInterval(1)
