@@ -1,3 +1,5 @@
+from typing import Optional
+
 from PyQt5 import QtCore, QtGui, QtWidgets, QtChart
 
 
@@ -61,7 +63,7 @@ class PlotMarkers:
         self.xAxis: QtChart.QAbstractAxis = xAxis
         self.yAxis: QtChart.QAbstractAxis = yAxis
 
-        self.markerSeries = None
+        self.markerSeries: Optional[QtChart.QScatterSeries] = None
 
     def addMarker(self, point: QtCore.QPointF) -> None:
         if not self.markerSeries:

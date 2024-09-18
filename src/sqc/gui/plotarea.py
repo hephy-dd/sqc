@@ -190,7 +190,7 @@ class PlotAreaWidget(QtWidgets.QWidget):
 
     def setMarkers(self, markers: list) -> None:
         self.clearMarkers()
-        sortedPoints = {}
+        sortedPoints: dict = {}
         for name, point in markers:
             sortedPoints.setdefault(name, []).append(point)
         for name, points in sortedPoints.items():

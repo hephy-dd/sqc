@@ -269,8 +269,12 @@ class BadStripSelectDialog(QtWidgets.QDialog):
             if isinstance(boundingBox, dict):
                 try:
                     type_ = boundingBox.get("type")
+                    if type_ is None:
+                        continue
                     unit = boundingBox.get("unit")
-                    if unit in self.units.get(type_):
+                    if unit is None:
+                        continue
+                    if unit in self.units.get(type_, []):
                         self.addBoundingBox(
                             enabled=boundingBox.get("enabled", True),
                             type=type_,
@@ -296,9 +300,9 @@ class BadStripSelectDialog(QtWidgets.QDialog):
     def updatePreview(self, strips: list) -> None:
         self.previewLineEdit.setText(compress_strips(strips))
 
-    def filterBadStrips(self, type_: str) -> dict:
-        badStrips: list = []
-        boxes = []
+    def filterBadStrips(self, type_: str) -> list[tuple]:
+        badStrips: list[tuple] = []
+        boxes: list = []
         try:
             for box in self.boundingBoxes():
                 if box.get("enabled") and box.get("type") == type_:
@@ -313,7 +317,7 @@ class BadStripSelectDialog(QtWidgets.QDialog):
                 for item in items:
                     strip = int(item.get("strip"))
                     value = item.get(field)
-                    if value is None:
+                    if strip is None or value is None:
                         continue
                     found_match = False
                     found_box = False
