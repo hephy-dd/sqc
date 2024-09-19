@@ -96,6 +96,8 @@ class DashboardWidget(QtWidgets.QWidget):
         self.profileComboBox.currentIndexChanged.connect(self.profileChanged)
         self.profileComboBoxPreviousIndex = -1
 
+        self.context.lock_profile.connect(lambda locked: self.profileComboBox.setEnabled(not locked))  # TODO!
+
         # Sequence
 
         self.sequenceLabel = QtWidgets.QLabel("Sequence")
@@ -439,27 +441,28 @@ class DashboardWidget(QtWidgets.QWidget):
         self.sequenceWidget.selectBadStrips.connect(self.selectBadStrips)
 
     def selectBadStrips(self, item) -> None:
-        namespace = self.sensorProfileName()
-        try:
-            dialog = BadStripSelectDialog(self)
-            dialog.addType("rpoly", "rpoly_r", ["Mohm", "kohm"])
-            dialog.addType("istrip", "istrip_i", ["pA", "nA"])
-            dialog.addType("idiel", "idiel_i", ["pA", "nA"])
-            dialog.addType("cac", "cac_cp", ["pF", "nF"])
-            dialog.addType("cint", "cint_cp", ["pF", "nF"])
-            dialog.addType("rint", "rint_r", ["Gohm", "Mohm"])
-            dialog.addType("idark", "idark_i", ["nA", "pA"])
-            dialog.setData(self.context.data.get(item.namespace(), {}))
-            dialog.boxesChanged.connect(self.stripscanPlotAreaWidget.setBoxes)
-            dialog.markersChanged.connect(self.stripscanPlotAreaWidget.setMarkers)
-            dialog.readSettings(namespace)
+        if isinstance(item, SequenceItem):
+            namespace = self.sensorProfileName()
+            try:
+                dialog = BadStripSelectDialog(self)
+                dialog.addType("rpoly", "rpoly_r", ["Mohm", "kohm"])
+                dialog.addType("istrip", "istrip_i", ["pA", "nA"])
+                dialog.addType("idiel", "idiel_i", ["pA", "nA"])
+                dialog.addType("cac", "cac_cp", ["pF", "nF"])
+                dialog.addType("cint", "cint_cp", ["pF", "nF"])
+                dialog.addType("rint", "rint_r", ["Gohm", "Mohm"])
+                dialog.addType("idark", "idark_i", ["nA", "pA"])
+                dialog.setData(self.context.data.get(item.namespace(), {}))
+                dialog.boxesChanged.connect(self.stripscanPlotAreaWidget.setBoxes)
+                dialog.markersChanged.connect(self.stripscanPlotAreaWidget.setMarkers)
+                dialog.readSettings(namespace)
 
-            if dialog.exec() == dialog.Accepted:
-                item.setStrips(dialog.selectedStrips())
+                if dialog.exec() == dialog.Accepted:
+                    item.setStrips(dialog.selectedStrips())
 
-            dialog.writeSettings(namespace)
-        except Exception as exc:
-            logger.exception(exc)
+                dialog.writeSettings(namespace)
+            except Exception as exc:
+                logger.exception(exc)
 
         self.stripscanPlotAreaWidget.clearBoxes()
         self.stripscanPlotAreaWidget.clearMarkers()
@@ -622,6 +625,9 @@ class DashboardWidget(QtWidgets.QWidget):
 
     def reset(self) -> None:
         self.clearReadings()
+
+        self.context.reset()
+        self.context.reset_data()
 
         data = self.profileComboBox.currentData() or {}
         filename = data.get("padfile")

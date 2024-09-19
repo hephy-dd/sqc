@@ -57,7 +57,9 @@ def create_slices(all: List[str], selected: List[str]) -> List[List[str]]:
 
 def normalize_strip_expression(expression: str) -> str:
     """Return normalized version of strip expression."""
-    return re.sub(r"\s*", "", expression).strip().replace(",", ", ")
+    expression = re.sub(r'\s+', " ", expression.strip())
+    tokens = re.split(r'[,\s]+', expression)
+    return ", ".join(list(filter(None, tokens)))
 
 
 def parse_strip_expression(expression: str) -> Generator[Tuple[str, str], None, None]:

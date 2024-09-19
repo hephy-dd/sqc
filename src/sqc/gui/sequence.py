@@ -48,6 +48,33 @@ def loadStripItems(measurements):
     return items
 
 
+class EditStripsDialog(QtWidgets.QDialog):
+    def __init__(self, parent: Optional[QtWidgets.QWidget] = None) -> None:
+        super().__init__(parent)
+
+        self.stripsLabel = QtWidgets.QLabel(self)
+        self.stripsLabel.setText("Strips")
+
+        self.stripsTextEdit = QtWidgets.QPlainTextEdit(self)
+
+        self.buttonBox = QtWidgets.QDialogButtonBox(self)
+        self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Ok)
+        self.buttonBox.addButton(QtWidgets.QDialogButtonBox.Cancel)
+        self.buttonBox.accepted.connect(self.accept)
+        self.buttonBox.rejected.connect(self.reject)
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.addWidget(self.stripsLabel)
+        layout.addWidget(self.stripsTextEdit)
+        layout.addWidget(self.buttonBox)
+
+    def strips(self) -> str:
+        return self.stripsTextEdit.toPlainText()
+
+    def setStrips(self, strips: str) -> None:
+        self.stripsTextEdit.setPlainText(strips)
+
+
 class SequenceItemState:
     """Represents a sequence item state with name and color."""
 
@@ -239,10 +266,41 @@ class SequenceWidget(QtWidgets.QTreeWidget):
         self.setExpandsOnDoubleClick(False)
         self.itemDoubleClicked.connect(self.editItem)
 
-    def showEditStripsDialog(self, item: SequenceItem) -> Optional[str]:
-        value, success = QtWidgets.QInputDialog.getText(self, item.fullName(),
-            "Strips", text=item.strips())
-        return value if success else None
+        self.editStripsItem = None
+
+        self.editStripsDialog = EditStripsDialog(self)
+        self.editStripsDialog.setModal(False)
+        self.editStripsDialog.hide()
+        self.editStripsDialog.accepted.connect(self.updateStripItem)
+        self.editStripsDialog.rejected.connect(lambda: self.context.lock_profile.emit(False))
+
+    def showEditStripsDialog(self, item: SequenceItem) -> None:
+        if isinstance(item, SequenceItem):
+            if item not in self.allItems():
+                return None
+            if self.editStripsItem is not item or self.editStripsItem is None:
+                self.updateStripItem()
+                self.editStripsItem = item
+                self.editStripsDialog.setWindowTitle(f"Edit Strips / {item.fullName()}")
+                self.editStripsDialog.setStrips(item.strips())
+                self.editStripsDialog.show()
+                self.context.lock_profile.emit(True)
+
+    def updateStripItem(self) -> None:
+        item = self.editStripsItem
+        if isinstance(item, SequenceItem):
+            if item not in self.allItems():
+                return None
+            strips = self.editStripsDialog.strips()
+            strips = normalize_strip_expression(strips)
+            try:
+                parse_strip_expression(strips)
+            except Exception as exc:
+                QtWidgets.QMessageBox.warning(self, "Invalid strips", f"Invalid strips: {strips} ({exc})")
+            else:
+                item.setStrips(strips)
+        self.editStripsItem = None
+        self.context.lock_profile.emit(False)
 
     def showEditIntervalDialog(self, item: SequenceItem) -> Optional[int]:
         value, success = QtWidgets.QInputDialog.getInt(self, item.fullName(),
@@ -251,15 +309,7 @@ class SequenceWidget(QtWidgets.QTreeWidget):
 
     def editItemStrips(self, item):
         if item.allChildren():
-            strips = self.showEditStripsDialog(item)
-            if strips is not None:
-                strips = normalize_strip_expression(strips)
-                try:
-                    parse_strip_expression(strips)
-                except Exception as exc:
-                    QtWidgets.QMessageBox.warning(self, "Invalid strips", f"Invalid strips: {strips} ({exc})")
-                else:
-                    item.setStrips(strips)
+            self.showEditStripsDialog(item)
 
     def editItemInterval(self, item):
         if item.interval():

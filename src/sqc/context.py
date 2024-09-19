@@ -73,6 +73,8 @@ class Context(QtCore.QObject):
 
     exception_raised = QtCore.pyqtSignal(Exception)
 
+    lock_profile = QtCore.pyqtSignal(bool)
+
     def __init__(self, station: Station, parent: Optional[QtCore.QObject] = None) -> None:
         super().__init__(parent)
         self._station: Station = station

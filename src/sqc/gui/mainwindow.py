@@ -330,8 +330,6 @@ class MainWindow(QtWidgets.QMainWindow):
             "Do you want to prepare a new measurement?\n\nThis will clear all plots and restore default sequence configuration."
         )
         if result == QtWidgets.QMessageBox.Yes:
-            self.context.reset()
-            self.context.reset_data()
             self.dashboardWidget.reset()
             self.dashboardWidget.updateContext()
 
@@ -572,6 +570,10 @@ class MainWindow(QtWidgets.QMainWindow):
             return
         if not self.dashboardWidget.operatorName().strip():
             QtWidgets.QMessageBox.warning(self, "Missing Operator Name", "No operator name is set.")
+            return
+        # TODO
+        if self.dashboardWidget.sequenceWidget.editStripsDialog.isVisible():
+            QtWidgets.QMessageBox.warning(self, "Editing Strips", "Close Edit Strips dialog to proceed.")
             return
         # Check environment limits
         data = self.context.station.box_environment()
