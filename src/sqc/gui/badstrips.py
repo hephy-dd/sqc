@@ -1,9 +1,27 @@
+import hashlib
+import json
 import logging
-from typing import Dict, Optional
+import os
+from typing import Any, Dict, Optional
 
 from PyQt5 import QtCore, QtWidgets
+from schema import Schema, And, Use, SchemaError
 
 from comet.utils import ureg
+
+
+def ensure_int(value: Any, default: int = 0) -> int:
+    try:
+        return int(float(value))
+    except (ValueError, TypeError):
+        return int(default)
+
+
+def ensure_float(value: Any, default: float = 0) -> float:
+    try:
+        return float(value)
+    except (ValueError, TypeError):
+        return float(default)
 
 
 def safe_float(text: str) -> float:
@@ -31,6 +49,59 @@ def compress_strips(strips: list) -> str:
             start = end = values[i]
     ranges.append(f"{start}" if start == end else f"{start}-{end}")
     return ", ".join(ranges)
+
+
+class BoundingBoxItem(QtWidgets.QTreeWidgetItem):
+    def __init__(self) -> None:
+        super().__init__()
+        self.setFlags(self.flags() | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsUserCheckable)
+        self.setEnabled(True)
+        self.setFirstStrip(0)
+        self.setLastStrip(0)
+        self.setMinimumValue(0)
+        self.setMaximumValue(0)
+
+    def isEnabled(self) -> bool:
+        return self.checkState(0) == QtCore.Qt.Checked
+
+    def setEnabled(self, enabled: bool) -> None:
+        self.setCheckState(0, QtCore.Qt.Checked if enabled else QtCore.Qt.Unchecked)
+
+    def typename(self) -> str:
+        return self.text(0)
+
+    def setTypename(self, typename: str) -> None:
+        self.setText(0, typename)
+
+    def firstStrip(self) -> int:
+        return int(self.text(1) or "0")
+
+    def setFirstStrip(self, strip: int) -> None:
+        return self.setText(1, format(strip))
+
+    def lastStrip(self) -> int:
+        return int(self.text(2) or "0")
+
+    def setLastStrip(self, strip: int) -> None:
+        return self.setText(2, format(strip))
+
+    def minimumValue(self) -> float:
+        return float(self.text(3) or "0")
+
+    def setMinimumValue(self, value: float) -> None:
+        return self.setText(3, format(value))
+
+    def maximumValue(self) -> float:
+        return float(self.text(4) or "0")
+
+    def setMaximumValue(self, value: float) -> None:
+        return self.setText(4, format(value))
+
+    def unit(self) -> str:
+        return self.text(5)
+
+    def setUnit(self, unit: str) -> None:
+        return self.setText(5, unit)
 
 
 class ComboBoxDelegate(QtWidgets.QStyledItemDelegate):
@@ -64,11 +135,11 @@ class SpinBoxDelegate(QtWidgets.QStyledItemDelegate):
         return spinbox
 
     def setEditorData(self, editor, index) -> None:
-        value = int(float(index.data(QtCore.Qt.DisplayRole).split()[0].strip()))
+        value = int(float(index.data(QtCore.Qt.DisplayRole)))
         editor.setValue(value)
 
     def setModelData(self, editor, model, index) -> None:
-        model.setData(index, f"{editor.value()}", QtCore.Qt.EditRole)
+        model.setData(index, format(editor.value()), QtCore.Qt.EditRole)
 
 
 class DoubleSpinBoxDelegate(QtWidgets.QStyledItemDelegate):
@@ -83,7 +154,7 @@ class DoubleSpinBoxDelegate(QtWidgets.QStyledItemDelegate):
         editor.setValue(value)
 
     def setModelData(self, editor, model, index) -> None:
-        model.setData(index, f"{editor.value():.3f}", QtCore.Qt.EditRole)
+        model.setData(index, format(editor.value()), QtCore.Qt.EditRole)
 
 
 class UnitDelegate(QtWidgets.QStyledItemDelegate):
@@ -148,8 +219,16 @@ class BadStripSelectDialog(QtWidgets.QDialog):
         self.removeBoxButton.setText("&Remove")
         self.removeBoxButton.clicked.connect(self.removeCurrentBox)
 
+        self.importButton = QtWidgets.QPushButton()
+        self.importButton.setText("&Import...")
+        self.importButton.clicked.connect(self.importFile)
+
+        self.exportButton = QtWidgets.QPushButton()
+        self.exportButton.setText("&Export...")
+        self.exportButton.clicked.connect(self.exportFile)
+
         self.previewLabel = QtWidgets.QLabel(self)
-        self.previewLabel.setText("Preview")
+        self.previewLabel.setText("Selected Strips")
 
         self.previewLineEdit = QtWidgets.QLineEdit(self)
         self.previewLineEdit.setReadOnly(True)
@@ -161,9 +240,11 @@ class BadStripSelectDialog(QtWidgets.QDialog):
         self.buttonBox.rejected.connect(self.reject)
 
         self.boxesLayout = QtWidgets.QGridLayout()
-        self.boxesLayout.addWidget(self.boxesTreeWidget, 0, 0, 3, 1)
+        self.boxesLayout.addWidget(self.boxesTreeWidget, 0, 0, 5, 1)
         self.boxesLayout.addWidget(self.addBoxButton, 0, 1, 1, 1)
         self.boxesLayout.addWidget(self.removeBoxButton, 1, 1, 1, 1)
+        self.boxesLayout.addWidget(self.importButton, 3, 1, 1, 1)
+        self.boxesLayout.addWidget(self.exportButton, 4, 1, 1, 1)
 
         layout = QtWidgets.QVBoxLayout(self)
         layout.addWidget(self.boxesLabel)
@@ -190,16 +271,108 @@ class BadStripSelectDialog(QtWidgets.QDialog):
             item.setText(5, unit)
 
     def newBox(self) -> None:
-        for type_, units in self.units.items():
+        for typename, units in self.units.items():
             if units:
-                self.addBoundingBox(True, type_, 0, 0, 0, 0, units[0])
+                item = BoundingBoxItem()
+                item.setEnabled(True)
+                item.setTypename(typename)
+                item.setUnit(units[0])
+                self.addBoundingBox(item)
+                self.boxesTreeWidget.setCurrentItem(item)
             break
 
     def removeCurrentBox(self) -> None:
         item = self.boxesTreeWidget.currentItem()
-        if item:
+        if item is not None:
             index = self.boxesTreeWidget.indexOfTopLevelItem(item)
             self.boxesTreeWidget.takeTopLevelItem(index)
+
+    def importFile(self) -> None:
+        # Define the schema for validation
+        bounding_box_schema = Schema({
+            "enabled": bool,
+            "type": str,
+            "first_strip": And(Use(int), lambda n: n >= 0),
+            "last_strip": And(Use(int), lambda n: n >= 0),
+            "minimum_value": Use(float),
+            "maximum_value": Use(float),
+            "unit": str,
+        })
+
+        data_schema = Schema({
+            "bounding_boxes": [bounding_box_schema],
+        })
+
+        # Open file dialog for selecting a JSON file
+        filename, _ = QtWidgets.QFileDialog.getOpenFileName(
+            self,
+            "Import JSON",
+            os.path.expanduser("~"),
+            "JSON (*.json)"
+        )
+
+        # If a file is selected
+        if filename:
+            try:
+                # Open the selected file and load the JSON data
+                with open(filename, "rt") as fp:
+                    data = json.load(fp)
+
+                # Validate the data structure using schema
+                validated_data = data_schema.validate(data)
+
+                # Extract validated bounding boxes
+                bounding_boxes = validated_data["bounding_boxes"]
+
+                self.clearBoundingBoxes()
+                for box in bounding_boxes:
+                    item = BoundingBoxItem()
+                    item.setEnabled(box["enabled"]),
+                    item.setTypename(box["type"])
+                    item.setFirstStrip(box["first_strip"])
+                    item.setLastStrip(box["last_strip"])
+                    item.setMinimumValue(box["minimum_value"])
+                    item.setMaximumValue(box["maximum_value"])
+                    item.setUnit(box["unit"]),
+                    self.addBoundingBox(item)
+
+            except (json.JSONDecodeError, SchemaError) as e:
+                # Handle JSON decoding and schema validation errors
+                logging.error(f"Failed to import file: {str(e)}")
+                QtWidgets.QMessageBox.critical(self, "Error", f"Failed to import file: {str(e)}")
+            except Exception as exc:
+                # Log any other unexpected exceptions
+                logging.exception(exc)
+                QtWidgets.QMessageBox.critical(self, "Error", f"An unexpected error occurred: {str(exc)}")
+
+    def exportFile(self) -> None:
+        filename, _ = QtWidgets.QFileDialog.getSaveFileName(
+            self,
+            "Export JSON",
+            os.path.expanduser("~"),
+            "JSON (*.json)",
+        )
+        if filename:
+            try:
+                boundingBoxes: list = []
+                for item in self.boundingBoxes():
+                    boundingBoxes.append({
+                        "enabled": item.isEnabled(),
+                        "type": item.typename(),
+                        "first_strip": item.firstStrip(),
+                        "last_strip": item.lastStrip(),
+                        "minimum_value": item.minimumValue(),
+                        "maximum_value": item.maximumValue(),
+                        "unit": item.unit(),
+                    })
+                data = {
+                    "bounding_boxes": boundingBoxes,
+                }
+                with open(filename, "wt") as fp:
+                    json.dump(data, fp)
+            except Exception as exc:
+                logging.exception(exc)
+                QtWidgets.QMessageBox.critical(self, "Error", f"An unexpected error occurred: {exc}")
 
     def updateBoxes(self) -> None:
         boundingBoxes: list = []
@@ -207,16 +380,15 @@ class BadStripSelectDialog(QtWidgets.QDialog):
         strips: set = set()
         for index in range(self.boxesTreeWidget.topLevelItemCount()):
             item = self.boxesTreeWidget.topLevelItem(index)
-            if item and item.checkState(0) == QtCore.Qt.Checked:
-                type_ = item.text(0)
-                unit = item.text(5)
-                first_strip = int(safe_float(item.text(1)))
-                last_strip = int(safe_float(item.text(2)))
-                minimum_value = (safe_float(item.text(3)) * ureg(unit)).to_base_units().m
-                maximum_value = (safe_float(item.text(4)) * ureg(unit)).to_base_units().m
-                topLeft = QtCore.QPointF(first_strip, maximum_value)
-                bottomRight = QtCore.QPointF(last_strip, minimum_value)
-                boundingBoxes.append((type_, QtCore.QRectF(topLeft, bottomRight)))
+            if isinstance(item, BoundingBoxItem):
+                if not item.isEnabled():
+                    continue
+                unit = ureg(item.unit())
+                minimumValue = (item.minimumValue() * unit).to_base_units().m
+                maximumValue = (item.maximumValue() * unit).to_base_units().m
+                topLeft = QtCore.QPointF(item.firstStrip(), maximumValue)
+                bottomRight = QtCore.QPointF(item.lastStrip(), minimumValue)
+                boundingBoxes.append((item.typename(), QtCore.QRectF(topLeft, bottomRight)))
         self.boxesChanged.emit(boundingBoxes)
         for type_ in self.fields:
             for badStrip in self.filterBadStrips(type_):
@@ -226,72 +398,65 @@ class BadStripSelectDialog(QtWidgets.QDialog):
         self.markersChanged.emit(markers)
         self.updatePreview(list(strips))
 
-    def addBoundingBox(self, enabled: bool, type: str, first_strip: int, last_strip: int, minimum_value: float, maximum_value: float, unit: str) -> None:
-        item = QtWidgets.QTreeWidgetItem(self.boxesTreeWidget)
-        item.setText(0, str(type))
-        item.setText(1, str(first_strip))
-        item.setText(2, str(last_strip))
-        item.setText(3, str(minimum_value))
-        item.setText(4, str(maximum_value))
-        item.setText(5, str(unit))
-        item.setFlags(item.flags() | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsUserCheckable)
-        item.setCheckState(0, QtCore.Qt.Checked if enabled else QtCore.Qt.Unchecked)
+    def addBoundingBox(self, item: BoundingBoxItem) -> None:
+        self.boxesTreeWidget.addTopLevelItem(item)
 
     def clearBoundingBoxes(self) -> None:
         while self.boxesTreeWidget.topLevelItemCount():
             self.boxesTreeWidget.takeTopLevelItem(0)
 
-    def boundingBoxes(self) -> list[dict]:
-        bboxes = []
+    def boundingBoxes(self) -> list[BoundingBoxItem]:
+        boundingBoxes = []
         for index in range(self.boxesTreeWidget.topLevelItemCount()):
             item = self.boxesTreeWidget.topLevelItem(index)
-            if item:
-                bboxes.append({
-                    "enabled": item.checkState(0) == QtCore.Qt.Checked,
-                    "type": item.text(0),
-                    "first_strip": int(safe_float(item.text(1))),
-                    "last_strip": int(safe_float(item.text(2))),
-                    "minimum_value": safe_float(item.text(3)),
-                    "maximum_value": safe_float(item.text(4)),
-                    "unit": item.text(5),
-                })
-        return bboxes
+            if isinstance(item, BoundingBoxItem):
+                boundingBoxes.append(item)
+        return boundingBoxes
 
-    def readSettings(self) -> None:
+    def readSettings(self, namespace: str) -> None:
+        hashedNamespace = hashlib.sha256(namespace.encode()).hexdigest()
         settings = QtCore.QSettings()
         settings.beginGroup(self.objectName())
         geometry = settings.value("geometry", QtCore.QByteArray(), QtCore.QByteArray)
-        boundingBoxes = settings.value("boundingBoxes", [], list)
+        settings.beginGroup("boundingBoxes")
+        size = settings.beginReadArray(hashedNamespace)
+        self.clearBoundingBoxes()
+        for index in range(size):
+            settings.setArrayIndex(index)
+            item = BoundingBoxItem()
+            item.setEnabled(settings.value("enabled", True, bool))
+            item.setTypename(settings.value("type", "", str))
+            item.setFirstStrip(settings.value("firstStrip", 0, int))
+            item.setLastStrip(settings.value("lastStrip", 0, int))
+            item.setMinimumValue(settings.value("minimumValue", 0, float))
+            item.setMaximumValue(settings.value("maximumValue", 0, float))
+            item.setUnit(settings.value("unit", "", str))
+            self.addBoundingBox(item)
+        settings.endArray()
+        settings.endGroup()
         settings.endGroup()
         self.restoreGeometry(geometry)
-        self.clearBoundingBoxes()
-        for boundingBox in boundingBoxes:
-            if isinstance(boundingBox, dict):
-                try:
-                    type_ = boundingBox.get("type")
-                    if type_ is None:
-                        continue
-                    unit = boundingBox.get("unit")
-                    if unit is None:
-                        continue
-                    if unit in self.units.get(type_, []):
-                        self.addBoundingBox(
-                            enabled=boundingBox.get("enabled", True),
-                            type=type_,
-                            first_strip=int(safe_float(boundingBox.get("first_strip", 0))),
-                            last_strip=int(safe_float(boundingBox.get("last_strip", 0))),
-                            minimum_value=safe_float(boundingBox.get("minimum_value", 0.0)),
-                            maximum_value=safe_float(boundingBox.get("maximum_value", 0.0)),
-                            unit=unit,
-                        )
-                except Exception as exc:
-                    logging.exception(exc)
+        self.updateBoxes()
 
-    def writeSettings(self) -> None:
+    def writeSettings(self, namespace: str) -> None:
+        boundingBoxes = self.boundingBoxes()
+        hashedNamespace = hashlib.sha256(namespace.encode()).hexdigest()
         settings = QtCore.QSettings()
         settings.beginGroup(self.objectName())
         settings.setValue("geometry", self.saveGeometry())
-        settings.setValue("boundingBoxes", self.boundingBoxes())
+        settings.beginGroup("boundingBoxes")
+        settings.beginWriteArray(hashedNamespace, len(boundingBoxes))
+        for index, item in enumerate(boundingBoxes):
+            settings.setArrayIndex(index)
+            settings.setValue("enabled", item.isEnabled())
+            settings.setValue("type", item.typename())
+            settings.setValue("firstStrip", item.firstStrip())
+            settings.setValue("lastStrip", item.lastStrip())
+            settings.setValue("minimumValue", item.minimumValue())
+            settings.setValue("maximumValue", item.maximumValue())
+            settings.setValue("unit", item.unit())
+        settings.endArray()
+        settings.endGroup()
         settings.endGroup()
 
     def selectedStrips(self) -> str:
@@ -299,21 +464,23 @@ class BadStripSelectDialog(QtWidgets.QDialog):
 
     def updatePreview(self, strips: list) -> None:
         self.previewLineEdit.setText(compress_strips(strips))
+        self.previewLineEdit.setCursorPosition(0)
 
-    def filterBadStrips(self, type_: str) -> list[tuple]:
+    def filterBadStrips(self, typename: str) -> list[tuple]:
         badStrips: list[tuple] = []
         boxes: list = []
         try:
-            for box in self.boundingBoxes():
-                if box.get("enabled") and box.get("type") == type_:
+            for item in self.boundingBoxes():
+                if item.isEnabled() and item.typename() == typename:
+                    unit = ureg(item.unit())
                     boxes.append((
-                        box.get("first_strip"),
-                        box.get("last_strip"),
-                        (box.get("minimum_value") * ureg(box.get("unit"))).to_base_units().m,
-                        (box.get("maximum_value") * ureg(box.get("unit"))).to_base_units().m,
+                        item.firstStrip(),
+                        item.lastStrip(),
+                        (item.minimumValue() * unit).to_base_units().m,
+                        (item.maximumValue() * unit).to_base_units().m,
                     ))
-            field = self.fields.get(type_)
-            for name, items in self._data.get(type_, {}).items():
+            field = self.fields.get(typename)
+            for name, items in self._data.get(typename, {}).items():
                 for item in items:
                     strip = int(item.get("strip"))
                     value = item.get(field)

@@ -439,6 +439,7 @@ class DashboardWidget(QtWidgets.QWidget):
         self.sequenceWidget.selectBadStrips.connect(self.selectBadStrips)
 
     def selectBadStrips(self, item) -> None:
+        namespace = self.sensorProfileName()
         try:
             dialog = BadStripSelectDialog(self)
             dialog.addType("rpoly", "rpoly_r", ["Mohm", "kohm"])
@@ -451,12 +452,12 @@ class DashboardWidget(QtWidgets.QWidget):
             dialog.setData(self.context.data.get(item.namespace(), {}))
             dialog.boxesChanged.connect(self.stripscanPlotAreaWidget.setBoxes)
             dialog.markersChanged.connect(self.stripscanPlotAreaWidget.setMarkers)
-            dialog.readSettings()
+            dialog.readSettings(namespace)
 
             if dialog.exec() == dialog.Accepted:
                 item.setStrips(dialog.selectedStrips())
 
-            dialog.writeSettings()
+            dialog.writeSettings(namespace)
         except Exception as exc:
             logger.exception(exc)
 
