@@ -30,4 +30,13 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: sqc-artifact
+        path: dist
+    - name: Build installer
+      run: |
+        $VERSION = python -c "import sqc; print(sqc.__version__)"
+        ISCC.exe /DVersion=$VERSION innosetup.iss
+    - name: Publish installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: sqc-setup-artifact
         path: dist/sqc*.exe
