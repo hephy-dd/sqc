@@ -266,7 +266,7 @@ class SequenceWidget(QtWidgets.QTreeWidget):
         self.setExpandsOnDoubleClick(False)
         self.itemDoubleClicked.connect(self.editItem)
 
-        self.editStripsItem = None
+        self.editStripsItem: Optional[SequenceItem] = None
 
         self.editStripsDialog = EditStripsDialog(self)
         self.editStripsDialog.setModal(False)

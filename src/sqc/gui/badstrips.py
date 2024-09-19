@@ -327,13 +327,13 @@ class BadStripSelectDialog(QtWidgets.QDialog):
                 self.clearBoundingBoxes()
                 for box in bounding_boxes:
                     item = BoundingBoxItem()
-                    item.setEnabled(box["enabled"]),
+                    item.setEnabled(box["enabled"])
                     item.setTypename(box["type"])
                     item.setFirstStrip(box["first_strip"])
                     item.setLastStrip(box["last_strip"])
                     item.setMinimumValue(box["minimum_value"])
                     item.setMaximumValue(box["maximum_value"])
-                    item.setUnit(box["unit"]),
+                    item.setUnit(box["unit"])
                     self.addBoundingBox(item)
                 self.updateBoxes()
 
@@ -484,10 +484,10 @@ class BadStripSelectDialog(QtWidgets.QDialog):
                         (item.maximumValue() * unit).to_base_units().m,
                     ))
             field = self.fields.get(typename)
-            for name, items in self._data.get(typename, {}).items():
-                for item in items:
-                    strip = int(item.get("strip"))
-                    value = item.get(field)
+            for name, entires in self._data.get(typename, {}).items():
+                for entry in entires:
+                    strip = int(entry.get("strip"))
+                    value = entry.get(field)
                     if strip is None or value is None:
                         continue
                     found_match = False

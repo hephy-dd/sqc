@@ -57,9 +57,10 @@ def create_slices(all: List[str], selected: List[str]) -> List[List[str]]:
 
 def normalize_strip_expression(expression: str) -> str:
     """Return normalized version of strip expression."""
-    expression = re.sub(r'\s+', " ", expression.strip())
-    tokens = re.split(r'[,\s]+', expression)
-    return ", ".join(list(filter(None, tokens)))
+    tokens = re.findall(r'\b\d+\s*-\s*\d+\b|[^\s,]+', expression)
+    tokens = [re.sub(r'\s*-\s*', "-", token).strip() for token in tokens]
+    tokens = [token.strip("-") for token in tokens]  # strip open ranges
+    return ", ".join(filter(None, tokens))
 
 
 def parse_strip_expression(expression: str) -> Generator[Tuple[str, str], None, None]:
