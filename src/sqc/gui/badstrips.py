@@ -335,6 +335,7 @@ class BadStripSelectDialog(QtWidgets.QDialog):
                     item.setMaximumValue(box["maximum_value"])
                     item.setUnit(box["unit"]),
                     self.addBoundingBox(item)
+                self.updateBoxes()
 
             except (json.JSONDecodeError, SchemaError) as e:
                 # Handle JSON decoding and schema validation errors
@@ -353,6 +354,9 @@ class BadStripSelectDialog(QtWidgets.QDialog):
             "JSON (*.json)",
         )
         if filename:
+            # Add .json extension if not already present
+            if not filename.endswith(".json"):
+                filename = f"{filename}.json"
             try:
                 boundingBoxes: list = []
                 for item in self.boundingBoxes():
