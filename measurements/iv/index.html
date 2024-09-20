@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="author" content="HEPHY" /><link rel="canonical" href="https://hephy-dd.github.io/sqc/measurements/iv/" />
+      <link rel="shortcut icon" href="../../img/favicon.ico" />
+    <title>IV - SQC</title>
+    <link rel="stylesheet" href="../../css/theme.css" />
+    <link rel="stylesheet" href="../../css/theme_extra.css" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/styles/github.min.css" />
+    
+      <script>
+        // Current page data
+        var mkdocs_page_name = "IV";
+        var mkdocs_page_input_path = "measurements/iv.md";
+        var mkdocs_page_url = "/sqc/measurements/iv/";
+      </script>
+    
+    <script src="../../js/jquery-3.6.0.min.js" defer></script>
+    <!--[if lt IE 9]>
+      <script src="../../js/html5shiv.min.js"></script>
+    <![endif]-->
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/10.5.0/highlight.min.js"></script>
+      <script>hljs.initHighlightingOnLoad();</script> 
+</head>
+
+<body class="wy-body-for-nav" role="document">
+
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side stickynav">
+    <div class="wy-side-scroll">
+      <div class="wy-side-nav-search">
+          <a href="../.." class="icon icon-home"> SQC
+        </a>
+        <div class="version">
+          0.10.0
+        </div><div role="search">
+  <form id ="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+      <input type="text" name="q" placeholder="Search docs" title="Type search term here" />
+  </form>
+</div>
+      </div>
+
+      <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../..">Home</a>
+                </li>
+              </ul>
+              <ul>
+                <li class="toctree-l1"><a class="reference internal" href="../../instruments/">Instruments</a>
+                </li>
+              </ul>
+              <p class="caption"><span class="caption-text">Measurements</span></p>
+              <ul class="current">
+                  <li class="toctree-l1 current"><a class="reference internal current" href="./">IV</a>
+    <ul class="current">
+    <li class="toctree-l2"><a class="reference internal" href="#configuration">Configuration</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#example-configuration">Example configuration</a>
+    </li>
+    <li class="toctree-l2"><a class="reference internal" href="#output">Output</a>
+    </li>
+    </ul>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../cv/">CV</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../stripscan/">Stripscan</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rpoly/">Rpoly</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../istrip/">Istrip</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../idiel/">Idiel</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../cac/">Cac</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../cint/">Cint</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../rint/">Rint</a>
+                  </li>
+                  <li class="toctree-l1"><a class="reference internal" href="../idark/">Idark</a>
+                  </li>
+              </ul>
+      </div>
+    </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+      <nav class="wy-nav-top" role="navigation" aria-label="Mobile navigation menu">
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../..">SQC</a>
+        
+      </nav>
+      <div class="wy-nav-content">
+        <div class="rst-content"><div role="navigation" aria-label="breadcrumbs navigation">
+  <ul class="wy-breadcrumbs">
+    <li><a href="../.." class="icon icon-home" alt="Docs"></a> &raquo;</li>
+          <li>Measurements &raquo;</li>
+      <li>IV</li>
+    <li class="wy-breadcrumbs-aside">
+        <a href="https://github.com/hephy-dd/sqc/edit/main/docs/measurements/iv.md"
+          class="icon icon-github"> Edit on GitHub</a>
+    </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+            <div class="section" itemprop="articleBody">
+              
+                <h1 id="iv">IV</h1>
+<p>IV ramp using Bias SMU for measurements.</p>
+<p>Type: <code>iv</code></p>
+<h2 id="configuration">Configuration</h2>
+<ul>
+<li><strong>name</strong>: (str) name of node.</li>
+<li><strong>enabled</strong>: (bool) enabled state. Default is <code>true</code>.</li>
+<li><strong>auto_disable</strong>: (bool) auto disable on success. Default is <code>true</code>.</li>
+<li><strong>parameters</strong>:<ul>
+<li><strong>hv_channels</strong>: (list) list of high voltage channels. Default is <code>[]</code>.</li>
+<li><strong>voltage_begin</strong>: (metric) start voltage (<code>-1000 V</code> to <code>0 V</code>). Required.</li>
+<li><strong>voltage_end</strong>: (metric) end voltage (<code>-1000 V</code> to <code>0 V</code>). Required.</li>
+<li><strong>voltage_step</strong>: (metric) step voltage (<code>-100 V</code> to <code>+100 V</code>). Required.</li>
+<li><strong>waiting_time</strong>: (metric) waiting time in seconds between voltage change and readings. Default is <code>1 s</code>.</li>
+<li><strong>compliance</strong>: (metric) current compliance for bias source in Ampere. Required.</li>
+</ul>
+</li>
+</ul>
+<h2 id="example-configuration">Example configuration</h2>
+<pre><code class="language-yaml">- type: iv
+  name: IV
+  enabled: true
+  auto_disable: true
+  parameters:
+    hv_channels: [A1, B1, C2]
+    voltage_begin: 0 V
+    voltage_end: -1000 V
+    voltage_step: -10 V
+    waiting_time: 1 s
+    compliance: 25 uA
+</code></pre>
+<h2 id="output">Output</h2>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>timestamp</code></td>
+<td><code>float</code></td>
+<td>Timestamp in seconds.</td>
+</tr>
+<tr>
+<td><code>temperature</code></td>
+<td><code>float</code></td>
+<td>Chuck temperature in degree Celcius.</td>
+</tr>
+<tr>
+<td><code>humidity</code></td>
+<td><code>float</code></td>
+<td>Relative box humidity in percent.</td>
+</tr>
+<tr>
+<td><code>index</code></td>
+<td><code>int</code></td>
+<td>Index for sorting.</td>
+</tr>
+<tr>
+<td><code>bias_voltage</code></td>
+<td><code>float</code></td>
+<td>Voltage level applied in Volt.</td>
+</tr>
+<tr>
+<td><code>bias_smu_v</code></td>
+<td><code>float</code></td>
+<td>Voltage reading in Volt.</td>
+</tr>
+<tr>
+<td><code>bias_smu_i</code></td>
+<td><code>float</code></td>
+<td>Current redaing in Ampere.</td>
+</tr>
+</tbody>
+</table>
+              
+            </div>
+          </div><footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="Footer Navigation">
+        <a href="../../instruments/" class="btn btn-neutral float-left" title="Instruments"><span class="icon icon-circle-arrow-left"></span> Previous</a>
+        <a href="../cv/" class="btn btn-neutral float-right" title="CV">Next <span class="icon icon-circle-arrow-right"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <!-- Copyright etc -->
+      <p>Copyright &copy; 2022-2024 <a href="https://hephy.at/">HEPHY</a>. SQC is licensed under the <a href="https://github.com/hephy-dd/sqc/tree/main/LICENSE">GNU General Public License Version 3</a>.</p>
+  </div>
+
+  Built with <a href="https://www.mkdocs.org/">MkDocs</a> using a <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>.
+</footer>
+          
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+
+  <div class="rst-versions" role="note" aria-label="Versions">
+  <span class="rst-current-version" data-toggle="rst-current-version">
+    
+        <span>
+          <a href="https://github.com/hephy-dd/sqc/" class="fa fa-github" style="color: #fcfcfc"> GitHub</a>
+        </span>
+    
+    
+      <span><a href="../../instruments/" style="color: #fcfcfc">&laquo; Previous</a></span>
+    
+    
+      <span><a href="../cv/" style="color: #fcfcfc">Next &raquo;</a></span>
+    
+  </span>
+</div>
+    <script>var base_url = '../..';</script>
+    <script src="../../js/theme_extra.js" defer></script>
+    <script src="../../js/theme.js" defer></script>
+      <script src="../../search/main.js" defer></script>
+    <script defer>
+        window.onload = function () {
+            SphinxRtdTheme.Navigation.enable(true);
+        };
+    </script>
+
+</body>
+</html>
