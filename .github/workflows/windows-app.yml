@@ -13,9 +13,9 @@ jobs:
     runs-on: windows-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python 3.11
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: 3.11
     - name: Install dependencies
@@ -27,7 +27,16 @@ jobs:
       run: |
         pyinstaller pyinstaller/windows_app.spec
     - name: Publish
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v4
       with:
         name: sqc-artifact
+        path: dist
+    - name: Build installer
+      run: |
+        $VERSION = python -c "import sqc; print(sqc.__version__)"
+        ISCC.exe /DVersion=$VERSION innosetup.iss
+    - name: Publish installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: sqc-setup-artifact
         path: dist/sqc*.exe

@@ -168,3 +168,33 @@ class PlotAreaWidget(QtWidgets.QWidget):
     def setStrips(self, strips: Dict[int, str]) -> None:
         for widget in self.plotWidgets():
             widget.setStrips(strips)
+
+    def clearBoxes(self) -> None:
+        for widget in self.plotWidgets():
+            widget.clearBoxes()
+
+    def setBoxes(self, boxes) -> None:
+        self.clearBoxes()
+        sortedRects: dict = {}
+        for name, rect in boxes:
+            sortedRects.setdefault(name, []).append(rect)
+        for name, rects in sortedRects.items():
+            widget = self.plotWidget(name)
+            if widget:
+                for rect in rects:
+                    widget.addBox(rect)
+
+    def clearMarkers(self) -> None:
+        for widget in self.plotWidgets():
+            widget.clearMarkers()
+
+    def setMarkers(self, markers: list) -> None:
+        self.clearMarkers()
+        sortedPoints: dict = {}
+        for name, point in markers:
+            sortedPoints.setdefault(name, []).append(point)
+        for name, points in sortedPoints.items():
+            widget = self.plotWidget(name)
+            if widget:
+                for point in points:
+                    widget.addMarker(point)

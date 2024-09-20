@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import os
 import sys
@@ -28,6 +29,7 @@ logger = logging.getLogger()
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(prog="sqc", description="Sensor Quality Control (SQC) for CMS Outer Tracker.")
     parser.add_argument('--browser', metavar="<path>", nargs="?", const=os.path.expanduser("~"), help="run data browser")
+    parser.add_argument('--import-json', metavar="<file>", help="import JSON measurement file (testing)")
     parser.add_argument('--debug-no-table', action='store_true', help="disable sequence table movements")
     parser.add_argument('--debug-no-tango', action='store_true', help="disable sequence tango movements")
     parser.add_argument('--debug', action='store_true', help="show debug messages")
@@ -108,6 +110,11 @@ def run_main_window(args):
 
     window.readSettings()
     window.show()
+
+    if args.import_json:
+        with open(args.import_json, "rt") as fp:
+            data = json.load(fp)
+        context.import_data(data.get("namespace", ""), data.get("data", {}))
 
     QtWidgets.QApplication.exec()
 

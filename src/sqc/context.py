@@ -73,6 +73,8 @@ class Context(QtCore.QObject):
 
     exception_raised = QtCore.pyqtSignal(Exception)
 
+    lock_profile = QtCore.pyqtSignal(bool)
+
     def __init__(self, station: Station, parent: Optional[QtCore.QObject] = None) -> None:
         super().__init__(parent)
         self._station: Station = station
@@ -175,6 +177,15 @@ class Context(QtCore.QObject):
         self._data.setdefault(namespace, {}).setdefault(type, {})[name] = auto_insert_item(items, data, sortkey=sortkey)
         logger.debug("inserted data: namespace=%r, type=%r, name=%r, data=%r", namespace, type, name, data)
         self.data_changed.emit(namespace, type, name)
+
+    def import_data(self, namespace: str, data: dict) -> None:
+        for type, type_data in data.items():
+            for name, name_data in type_data.items():
+                for item in name_data:
+                    items: Dict[str, Dict] = self._data.setdefault(namespace, {}).setdefault(type, {}).get(name, [])
+                    self._data.setdefault(namespace, {}).setdefault(type, {})[name] = auto_insert_item(items, item, sortkey="strip_index")
+                self.data_changed.emit(namespace, type, name)
+                logger.debug("imported data: namespace=%r, type=%r, name=%r", namespace, type, name)
 
     # Statistics
 
