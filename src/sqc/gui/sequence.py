@@ -272,7 +272,7 @@ class SequenceWidget(QtWidgets.QTreeWidget):
         self.editStripsDialog.setModal(False)
         self.editStripsDialog.hide()
         self.editStripsDialog.accepted.connect(self.updateStripItem)
-        self.editStripsDialog.rejected.connect(lambda: self.context.lock_profile.emit(False))
+        self.editStripsDialog.rejected.connect(self.resetStripItem)
 
     def showEditStripsDialog(self, item: SequenceItem) -> None:
         if isinstance(item, SequenceItem):
@@ -299,6 +299,10 @@ class SequenceWidget(QtWidgets.QTreeWidget):
                 QtWidgets.QMessageBox.warning(self, "Invalid strips", f"Invalid strips: {strips} ({exc})")
             else:
                 item.setStrips(strips)
+        self.editStripsItem = None
+        self.context.lock_profile.emit(False)
+
+    def resetStripItem(self) -> None:
         self.editStripsItem = None
         self.context.lock_profile.emit(False)
 
